@@ -168,6 +168,7 @@ function SharedInput({ f, s, amenities, gallery, error }: { f: SharedField; s: R
         max={f.kind === "number" ? f.max : undefined}
         maxLength={f.kind === "text" ? f.max : 500}
         placeholder={f.kind === "href" ? "/kontakt · https://…" : undefined}
+        data-testid={`field-${name}`}
       />
     </Field>
   );
