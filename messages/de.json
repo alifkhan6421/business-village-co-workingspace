@@ -751,7 +751,7 @@
       "usedTimes": "{count, plural, one {# Verwendung} other {# Verwendungen}}",
       "editTitle": "Bild bearbeiten",
       "inUseTitle": "Bild wird verwendet",
-      "inUse": "Dieses Bild wird derzeit verwendet auf: {places}. Entfernen Sie es dort zuerst, damit keine Seiten beschädigt werden.",
+      "inUse": "Dieses Bild wird derzeit verwendet und kann nicht gelöscht werden. Entfernen Sie es zuerst hier:",
       "pick": "Bild auswählen",
       "choose": "Auswählen",
       "change": "Ändern",
@@ -767,7 +767,8 @@
         "room": "Raum",
         "page": "Seite",
         "settings": "Einstellungen"
-      }
+      },
+      "altMissing": "Alt-Text fehlt"
     },
     "users": {
       "title": "Benutzer",

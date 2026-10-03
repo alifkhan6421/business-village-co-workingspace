@@ -751,7 +751,7 @@
       "usedTimes": "{count, plural, one {# use} other {# uses}}",
       "editTitle": "Edit image",
       "inUseTitle": "Image in use",
-      "inUse": "This image is currently used on: {places}. Remove it there first so no pages break.",
+      "inUse": "This image is currently in use and cannot be deleted. Remove it here first:",
       "pick": "Choose image",
       "choose": "Select",
       "change": "Change",
@@ -767,7 +767,8 @@
         "room": "Room",
         "page": "Page",
         "settings": "Settings"
-      }
+      },
+      "altMissing": "Alt text missing"
     },
     "users": {
       "title": "Users",

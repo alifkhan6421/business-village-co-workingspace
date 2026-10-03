@@ -72,3 +72,14 @@ export async function loadCalendarSettings() {
     weekdays: s?.booking_weekdays ?? [1, 2, 3, 4, 5],
   };
 }
+
+/** Resolves media ids to picker values for ImageField. */
+export async function mediaValues(ids: (string | null | undefined)[]) {
+  const wanted = ids.filter((x): x is string => !!x);
+  const out: Record<string, { id: string; url: string; alt: string }> = {};
+  if (!wanted.length) return out;
+  const supabase = await createClient();
+  const { data } = await supabase.from("media").select("id, file_url, alt_text_de").in("id", wanted);
+  for (const m of data ?? []) out[m.id] = { id: m.id, url: m.file_url, alt: m.alt_text_de };
+  return out;
+}
