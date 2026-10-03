@@ -115,7 +115,8 @@
     "invalidValue": "Ungültiger Wert.",
     "invalidTime": "Bitte geben Sie eine gültige Uhrzeit ein.",
     "fixErrors": "Bitte korrigieren Sie die markierten Felder.",
-    "slugTaken": "Dieser URL-Name ist bereits vergeben."
+    "slugTaken": "Dieser URL-Name ist bereits vergeben.",
+    "emailTaken": "Diese E-Mail-Adresse wird bereits verwendet."
   },
   "errors": {
     "unknown": "Etwas ist schiefgelaufen. Bitte versuchen Sie es erneut.",
@@ -786,14 +787,20 @@
       "bookings": "Buchungen",
       "language": "Sprache",
       "roleConfirm": "Rolle von {name} auf „{role}“ ändern?",
-      "selfDemoteWarning": "Sie ändern Ihre eigene Rolle."
+      "selfDemoteWarning": "Sie ändern Ihre eigene Rolle.",
+      "department": "Abteilung",
+      "suspendHint": "Die Person kann sich nicht mehr anmelden. Bestehende Buchungen bleiben erhalten.",
+      "searchPlaceholder": "Name, E-Mail oder Firma …",
+      "lastSignIn": "Letzte Anmeldung",
+      "never": "Noch nie"
     },
     "guests": {
       "title": "Gäste",
       "subtitle": "Personen, die ohne Konto gebucht haben. Diese Daten sind nur für die Verwaltung sichtbar.",
       "lastBooking": "Letzte Buchung",
       "edit": "Gastdaten",
-      "saved": "Gastdaten gespeichert."
+      "saved": "Gastdaten gespeichert.",
+      "searchPlaceholder": "Name, E-Mail oder Firma …"
     },
     "announcements": {
       "title": "Ankündigungen",
@@ -807,7 +814,10 @@
       "activeField": "Aktiv",
       "live": "Live",
       "scheduled": "Geplant",
-      "expired": "Abgelaufen"
+      "expired": "Abgelaufen",
+      "empty": "Noch keine Ankündigungen.",
+      "inactive": "Inaktiv",
+      "timeHint": "Zeiten in deutscher Zeit (Europe/Berlin)."
     },
     "inquiries": {
       "title": "Anfragen",
@@ -819,7 +829,9 @@
       "reopen": "Wieder öffnen",
       "saved": "Anfrage aktualisiert.",
       "replyByEmail": "Per E-Mail antworten",
-      "received": "Eingegangen"
+      "received": "Eingegangen",
+      "searchPlaceholder": "Name, E-Mail oder Nachricht …",
+      "detailTitle": "Anfrage von {name}"
     },
     "emailLogs": {
       "title": "E-Mail-Protokoll",

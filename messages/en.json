@@ -115,7 +115,8 @@
     "invalidValue": "Invalid value.",
     "invalidTime": "Please enter a valid time.",
     "fixErrors": "Please correct the highlighted fields.",
-    "slugTaken": "This URL name is already in use."
+    "slugTaken": "This URL name is already in use.",
+    "emailTaken": "This email address is already in use."
   },
   "errors": {
     "unknown": "Something went wrong. Please try again.",
@@ -786,14 +787,20 @@
       "bookings": "Bookings",
       "language": "Language",
       "roleConfirm": "Change the role of {name} to \"{role}\"?",
-      "selfDemoteWarning": "You are changing your own role."
+      "selfDemoteWarning": "You are changing your own role.",
+      "department": "Department",
+      "suspendHint": "The person can no longer log in. Existing bookings are kept.",
+      "searchPlaceholder": "Name, email or company …",
+      "lastSignIn": "Last login",
+      "never": "Never"
     },
     "guests": {
       "title": "Guests",
       "subtitle": "People who booked without an account. This data is only visible to admins.",
       "lastBooking": "Last booking",
       "edit": "Guest details",
-      "saved": "Guest details saved."
+      "saved": "Guest details saved.",
+      "searchPlaceholder": "Name, email or company …"
     },
     "announcements": {
       "title": "Announcements",
@@ -807,7 +814,10 @@
       "activeField": "Active",
       "live": "Live",
       "scheduled": "Scheduled",
-      "expired": "Expired"
+      "expired": "Expired",
+      "empty": "No announcements yet.",
+      "inactive": "Inactive",
+      "timeHint": "Times in German time (Europe/Berlin)."
     },
     "inquiries": {
       "title": "Inquiries",
@@ -819,7 +829,9 @@
       "reopen": "Reopen",
       "saved": "Inquiry updated.",
       "replyByEmail": "Reply by email",
-      "received": "Received"
+      "received": "Received",
+      "searchPlaceholder": "Name, email or message …",
+      "detailTitle": "Inquiry from {name}"
     },
     "emailLogs": {
       "title": "Email Logs",
