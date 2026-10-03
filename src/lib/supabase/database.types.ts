@@ -606,8 +606,14 @@ isOneToOne: false
 "admin_delete_block":
 { Args: { "p_block_id": string }; Returns: undefined
                            },
+"admin_set_amenities":
+{ Args: { "p_amenity_ids": (string)[],"p_resource_id": string,"p_type": string }; Returns: undefined
+                           },
 "admin_set_booking_token":
 { Args: { "p_booking_id": string,"p_token_hash": string }; Returns: undefined
+                           },
+"admin_set_gallery":
+{ Args: { "p_cover_id": string,"p_media_ids": (string)[],"p_resource_id": string,"p_type": string }; Returns: undefined
                            },
 "admin_set_user_role":
 { Args: { "p_role": string,"p_user_id": string }; Returns: undefined
@@ -618,6 +624,11 @@ isOneToOne: false
 "admin_utilization":
 { Args: { "p_from": string,"p_to": string }; Returns: {
               "bookable_hours": number,"booked_hours": number,"resource_count": number,"resource_type": string
+            }[]
+                           },
+"amenity_usage_counts":
+{ Args: Record<PropertyKey, never>; Returns: {
+              "amenity_id": string,"room_count": number,"workspace_count": number
             }[]
                            },
 "cancel_booking_by_token":
