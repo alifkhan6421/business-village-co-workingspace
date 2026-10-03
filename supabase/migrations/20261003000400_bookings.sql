@@ -745,3 +745,15 @@ end;
 $$;
 revoke all on function public.admin_utilization(timestamptz, timestamptz) from public, anon;
 grant execute on function public.admin_utilization(timestamptz, timestamptz) to authenticated;
+
+-- Reference generator for trusted server-side tooling (seed scripts, imports).
+create or replace function public.next_booking_reference()
+returns text
+language sql
+security definer
+set search_path = ''
+as $$
+  select private.next_booking_reference();
+$$;
+revoke all on function public.next_booking_reference() from public, anon, authenticated;
+grant execute on function public.next_booking_reference() to service_role;
