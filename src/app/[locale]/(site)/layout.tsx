@@ -5,7 +5,7 @@ import { SiteFooter } from "@/components/site/footer";
 import type { Locale } from "@/i18n/routing";
 
 export default async function SiteLayout({ children, params }: { children: React.ReactNode; params: Promise<{ locale: string }> }) {
-  const { locale } = (await params) as { locale: Locale };
+  const locale = (await params).locale as Locale;
   setRequestLocale(locale);
   const t = await getTranslations({ locale, namespace: "common" });
   return (

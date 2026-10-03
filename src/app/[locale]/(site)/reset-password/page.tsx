@@ -8,16 +8,16 @@ import { localizeHref } from "@/lib/href";
 import { getCurrentUser } from "@/lib/auth";
 import type { Locale } from "@/i18n/routing";
 
-type Props = { params: Promise<{ locale: Locale }> };
+type Props = { params: Promise<{ locale: string }> };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const { locale } = await params;
+  const locale = (await params).locale as Locale;
   const t = await getTranslations({ locale, namespace: "auth" });
   return buildMetadata({ locale, internalPath: "/reset-password", title: t("resetTitle"), noindex: true });
 }
 
 export default async function ResetPage({ params }: Props) {
-  const { locale } = await params;
+  const locale = (await params).locale as Locale;
   setRequestLocale(locale);
   const t = await getTranslations({ locale, namespace: "auth" });
   const current = await getCurrentUser();

@@ -13,10 +13,10 @@ import type { Locale } from "@/i18n/routing";
 
 export const dynamic = "force-dynamic";
 
-type Props = { params: Promise<{ locale: Locale; token: string }>; searchParams: Promise<{ new?: string }> };
+type Props = { params: Promise<{ locale: string; token: string }>; searchParams: Promise<{ new?: string }> };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const { locale } = await params;
+  const locale = (await params).locale as Locale;
   const t = await getTranslations({ locale, namespace: "booking" });
   return { title: t("manageTitle"), robots: { index: false, follow: false }, referrer: "no-referrer" };
 }
@@ -25,7 +25,8 @@ const statusVariant = { confirmed: "success", pending: "warning", cancelled: "da
 
 /** Guest self-service page: the token is the only key, it is looked up by its hash. */
 export default async function ManageBookingPage({ params, searchParams }: Props) {
-  const { locale, token } = await params;
+  const { token } = await params;
+  const locale = (await params).locale as Locale;
   setRequestLocale(locale);
   const { new: isNew } = await searchParams;
   const t = await getTranslations({ locale, namespace: "booking" });

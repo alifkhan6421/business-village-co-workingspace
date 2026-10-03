@@ -7,17 +7,17 @@ import { berlinToUtc } from "@/lib/time";
 import { buildMetadata } from "@/lib/seo";
 import type { Locale } from "@/i18n/routing";
 
-type Props = { params: Promise<{ locale: Locale }>; searchParams: Promise<Record<string, string | undefined>> };
+type Props = { params: Promise<{ locale: string }>; searchParams: Promise<Record<string, string | undefined>> };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const { locale } = await params;
+  const locale = (await params).locale as Locale;
   const t = await getTranslations({ locale, namespace: "site" });
   return buildMetadata({ locale, internalPath: "/search", title: t("searchResultsTitle"), noindex: true });
 }
 
 /** Results of the homepage availability search — real availability from the database. */
 export default async function SearchPage({ params, searchParams }: Props) {
-  const { locale } = await params;
+  const locale = (await params).locale as Locale;
   setRequestLocale(locale);
   const q = await searchParams;
   const t = await getTranslations({ locale, namespace: "site" });

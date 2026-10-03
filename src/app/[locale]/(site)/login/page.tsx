@@ -6,16 +6,16 @@ import { buildMetadata } from "@/lib/seo";
 import { localizeHref } from "@/lib/href";
 import type { Locale } from "@/i18n/routing";
 
-type Props = { params: Promise<{ locale: Locale }>; searchParams: Promise<{ next?: string; error?: string }> };
+type Props = { params: Promise<{ locale: string }>; searchParams: Promise<{ next?: string; error?: string }> };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const { locale } = await params;
+  const locale = (await params).locale as Locale;
   const t = await getTranslations({ locale, namespace: "auth" });
   return buildMetadata({ locale, internalPath: "/login", title: t("loginTitle"), noindex: true });
 }
 
 export default async function LoginPage({ params, searchParams }: Props) {
-  const { locale } = await params;
+  const locale = (await params).locale as Locale;
   setRequestLocale(locale);
   const { next, error } = await searchParams;
   const t = await getTranslations({ locale, namespace: "auth" });

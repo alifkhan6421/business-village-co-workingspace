@@ -5,15 +5,15 @@ import { getPage } from "@/lib/cms";
 import { buildMetadata } from "@/lib/seo";
 import type { Locale } from "@/i18n/routing";
 
-type Props = { params: Promise<{ locale: Locale }>; searchParams: Promise<Record<string, string | string[] | undefined>> };
+type Props = { params: Promise<{ locale: string }>; searchParams: Promise<Record<string, string | string[] | undefined>> };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const { locale } = await params;
+  const locale = (await params).locale as Locale;
   return buildMetadata({ locale, internalPath: "/", page: await getPage("home", locale) });
 }
 
 export default async function Page({ params, searchParams }: Props) {
-  const { locale } = await params;
+  const locale = (await params).locale as Locale;
   setRequestLocale(locale);
   return <CmsPage slug="home" locale={locale} searchParams={await searchParams} />;
 }
