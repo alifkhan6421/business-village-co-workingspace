@@ -1,3 +1,4 @@
+import { isAllowedMapUrl } from "@/lib/cms-sections";
 import { getTranslations } from "next-intl/server";
 import { Mail, MapPin, Phone, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -28,15 +29,7 @@ import { AvailabilitySearch } from "./availability-search";
 import { ContactForm } from "./contact-form";
 import { MapEmbed } from "./map-embed";
 
-const MAP_HOSTS = ["www.google.com", "maps.google.com", "www.openstreetmap.org"];
-export function isAllowedMapUrl(url: string) {
-  try {
-    const u = new URL(url);
-    return u.protocol === "https:" && MAP_HOSTS.includes(u.hostname);
-  } catch {
-    return false;
-  }
-}
+export { isAllowedMapUrl };
 
 async function FeaturedResources({ section, locale, type }: { section: SectionView; locale: Locale; type: "workspace" | "room" }) {
   const t = await getTranslations({ locale, namespace: "site" });

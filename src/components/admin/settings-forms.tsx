@@ -210,7 +210,7 @@ export function FooterSettingsForm({ v, footerLogo }: { v: S; footerLogo: ImageV
       <Field label={t("description")} htmlFor={`ft-d-${l}`} error={fe(`footer_description_${l}`)}>
         <Textarea id={`ft-d-${l}`} name={`footer_description_${l}`} defaultValue={s(v[`footer_description_${l}`])} rows={3} maxLength={600} />
       </Field>
-      <Field label={t("copyright")} htmlFor={`ft-c-${l}`} error={fe(`footer_copyright_${l}`)} hint={t("copyrightHint")}>
+      <Field label={t("copyright")} htmlFor={`ft-c-${l}`} error={fe(`footer_copyright_${l}`)} hint={t.raw("copyrightHint") as string}>
         <Input id={`ft-c-${l}`} name={`footer_copyright_${l}`} defaultValue={s(v[`footer_copyright_${l}`])} maxLength={200} />
       </Field>
     </div>
