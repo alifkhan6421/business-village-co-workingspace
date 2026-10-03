@@ -1,4 +1,5 @@
 import "server-only";
+import { createClient } from "@/lib/supabase/server";
 import type { Tables } from "@/lib/supabase/database.types";
 
 /** Booking with customer and resource, for admin lists and detail pages. */
@@ -47,4 +48,27 @@ export function customerOf(b: AdminBooking) {
 
 export function resourceName(b: AdminBooking) {
   return b.workspace?.name ?? b.room?.name ?? "—";
+}
+
+export async function loadResourceOptions() {
+  const supabase = await createClient();
+  const [ws, rooms] = await Promise.all([
+    supabase.from("workspaces").select("id, name, capacity, status").order("display_order").order("name"),
+    supabase.from("rooms").select("id, name, capacity, status").order("display_order").order("name"),
+  ]);
+  return [
+    ...(ws.data ?? []).map((r) => ({ id: r.id, name: r.name, capacity: r.capacity, type: "workspace" as const })),
+    ...(rooms.data ?? []).map((r) => ({ id: r.id, name: r.name, capacity: r.capacity, type: "room" as const })),
+  ];
+}
+
+export async function loadCalendarSettings() {
+  const supabase = await createClient();
+  const { data: s } = await supabase.from("site_settings").select("booking_day_start, booking_day_end, booking_slot_minutes, booking_weekdays").eq("id", 1).single();
+  return {
+    dayStart: (s?.booking_day_start ?? "07:00").slice(0, 5),
+    dayEnd: (s?.booking_day_end ?? "21:00").slice(0, 5),
+    slotMinutes: s?.booking_slot_minutes ?? 30,
+    weekdays: s?.booking_weekdays ?? [1, 2, 3, 4, 5],
+  };
 }

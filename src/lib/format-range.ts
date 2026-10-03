@@ -6,7 +6,7 @@ type Fmt = { dateTime: (d: Date, opts?: DateTimeFormatOptions) => string };
 export function formatBookingRange(f: Fmt, start: string | Date, end: string | Date) {
   const s = new Date(start);
   const e = new Date(end);
-  const dateOpts: DateTimeFormatOptions = { weekday: "short", day: "2-digit", month: "2-digit", year: "numeric" };
+  const dateOpts: DateTimeFormatOptions = { weekday: "short", day: "numeric", month: "short", year: "numeric" };
   const day = f.dateTime(s, dateOpts);
   const endDay = f.dateTime(e, dateOpts);
   const t = (d: Date) => f.dateTime(d, { hour: "2-digit", minute: "2-digit", hourCycle: "h23" });

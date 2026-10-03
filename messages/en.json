@@ -154,7 +154,8 @@
       "invalid_customer": "Please select a member or enter guest details.",
       "not_found": "The booking could not be found.",
       "invalid_status": "Invalid status."
-    }
+    },
+    "emailFailed": "The email could not be sent. See the email log for details."
   },
   "status": {
     "booking": {
@@ -635,7 +636,11 @@
       "viewProfile": "Open profile",
       "viewGuest": "Open guest",
       "cancelledAt": "Cancelled at",
-      "updatedHint": "If the option is enabled, the customer automatically receives an email about changes."
+      "updatedHint": "If the option is enabled, the customer automatically receives an email about changes.",
+      "upcoming": "Current & upcoming",
+      "past": "Past",
+      "guestLinkHint": "Guests manage their booking via a personal link. When the schedule is changed with email notification, a new link is sent and the old one stops working.",
+      "messagesHint": "Messages are emailed with the booking reference in the subject. Replies appear here once inbound email is set up."
     },
     "calendar": {
       "title": "Calendar",
@@ -649,7 +654,9 @@
       "statuses": "Status",
       "activeOnly": "Active",
       "blocks": "Show blocks",
-      "newBookingHint": "Select a single resource first to create a booking."
+      "newBookingHint": "Select a single resource first to create a booking.",
+      "selectHint": "Select a time range in the calendar to book {name}.",
+      "allStatuses": "All statuses"
     },
     "resources": {
       "workspacesTitle": "Workspaces",

@@ -15,11 +15,11 @@ export default getRequestConfig(async ({ requestLocale }) => {
     messages: (await import(`../../messages/${locale}.json`)).default,
     formats: {
       dateTime: {
-        short: { day: "2-digit", month: "2-digit", year: "numeric" },
+        short: { day: "numeric", month: "short", year: "numeric" },
         long: { day: "numeric", month: "long", year: "numeric" },
         weekday: { weekday: "long", day: "numeric", month: "long", year: "numeric" },
         time: { hour: "2-digit", minute: "2-digit", hourCycle: "h23" },
-        dateTime: { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit", hourCycle: "h23" },
+        dateTime: { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", hourCycle: "h23" },
       },
     },
   };

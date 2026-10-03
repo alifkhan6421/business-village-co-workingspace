@@ -154,7 +154,8 @@
       "invalid_customer": "Bitte wählen Sie ein Mitglied oder geben Sie Gastdaten ein.",
       "not_found": "Die Buchung wurde nicht gefunden.",
       "invalid_status": "Ungültiger Status."
-    }
+    },
+    "emailFailed": "Die E-Mail konnte nicht gesendet werden. Details im E-Mail-Protokoll."
   },
   "status": {
     "booking": {
@@ -635,7 +636,11 @@
       "viewProfile": "Profil öffnen",
       "viewGuest": "Gast öffnen",
       "cancelledAt": "Storniert am",
-      "updatedHint": "Bei Änderungen erhält der Kunde automatisch eine E-Mail, wenn die Option aktiviert ist."
+      "updatedHint": "Bei Änderungen erhält der Kunde automatisch eine E-Mail, wenn die Option aktiviert ist.",
+      "upcoming": "Aktuelle & kommende",
+      "past": "Vergangene",
+      "guestLinkHint": "Gäste verwalten ihre Buchung über einen persönlichen Link. Bei einer Terminänderung mit E-Mail-Benachrichtigung wird ein neuer Link verschickt, der alte wird ungültig.",
+      "messagesHint": "Nachrichten werden per E-Mail mit der Buchungsnummer im Betreff verschickt. Antworten erscheinen hier, sobald der E-Mail-Empfang eingerichtet ist."
     },
     "calendar": {
       "title": "Kalender",
@@ -649,7 +654,9 @@
       "statuses": "Status",
       "activeOnly": "Aktive",
       "blocks": "Sperren anzeigen",
-      "newBookingHint": "Für eine neue Buchung zuerst eine einzelne Ressource auswählen."
+      "newBookingHint": "Für eine neue Buchung zuerst eine einzelne Ressource auswählen.",
+      "selectHint": "Zeitraum im Kalender markieren, um {name} zu buchen.",
+      "allStatuses": "Alle Status"
     },
     "resources": {
       "workspacesTitle": "Arbeitsplätze",
