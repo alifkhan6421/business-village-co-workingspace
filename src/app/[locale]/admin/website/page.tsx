@@ -1,9 +1,9 @@
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
-import { FileText, Home, Mail, Menu, PanelBottom, Scale, Search } from "lucide-react";
+import { ArrowRight, FileText, Home, Mail, Menu, PanelBottom, Scale, Search } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { AdminPageHeader } from "@/components/admin/admin-shell";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import type { Locale } from "@/i18n/routing";
 
 export default async function WebsiteHub({ params }: { params: Promise<{ locale: string }> }) {
@@ -25,17 +25,20 @@ export default async function WebsiteHub({ params }: { params: Promise<{ locale:
   return (
     <>
       <AdminPageHeader title={t("website.title")} subtitle={t("website.subtitle")} />
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {tiles.map((x) => (
-          <Link key={x.title} href={x.href}>
-            <Card className="h-full transition-colors hover:border-primary/40">
-              <CardContent className="flex gap-3 p-5">
-                <x.icon className="h-5 w-5 shrink-0 text-primary" />
-                <div>
-                  <div className="font-semibold">{x.title}</div>
-                  <div className="text-sm text-muted-foreground">{x.desc}</div>
+          <Link key={x.title} href={x.href} className="group rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+            <Card className="flex h-full items-start gap-4 p-5 transition-[border-color,box-shadow] group-hover:border-primary/30 group-hover:shadow-sm">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                <x.icon className="h-5 w-5" />
+              </span>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center justify-between gap-2 font-semibold">
+                  {x.title}
+                  <ArrowRight className="h-4 w-4 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-primary" />
                 </div>
-              </CardContent>
+                <div className="mt-0.5 text-sm text-muted-foreground">{x.desc}</div>
+              </div>
             </Card>
           </Link>
         ))}

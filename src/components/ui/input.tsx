@@ -31,15 +31,20 @@ export const Textarea = React.forwardRef<HTMLTextAreaElement, React.TextareaHTML
 Textarea.displayName = "Textarea";
 
 export const NativeSelect = React.forwardRef<HTMLSelectElement, React.SelectHTMLAttributes<HTMLSelectElement>>(
-  ({ className, ...props }, ref) => (
-    <select
-      ref={ref}
-      className={cn(
-        "flex h-10 w-full appearance-none truncate rounded-lg border border-input bg-background shadow-xs transition-[border-color,box-shadow] bv-select py-2 pl-3 pr-9 text-base md:text-sm ring-offset-background focus-visible:outline-none focus-visible:border-primary/60 focus-visible:ring-[3px] focus-visible:ring-ring/15 disabled:cursor-not-allowed disabled:opacity-50",
-        className,
-      )}
-      {...props}
-    />
-  ),
+  ({ className, ...props }, ref) => {
+    // A list box (size > 1 or multiple) shows its options inline: no fixed height or chevron.
+    const list = (props.size ?? 1) > 1 || props.multiple;
+    return (
+      <select
+        ref={ref}
+        className={cn(
+          "flex w-full rounded-lg border border-input bg-background text-base shadow-xs ring-offset-background transition-[border-color,box-shadow] focus-visible:border-primary/60 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/15 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",
+          list ? "h-auto p-1 [&>option]:rounded-md [&>option]:px-2 [&>option]:py-1.5" : "bv-select h-10 appearance-none truncate py-2 pl-3 pr-9",
+          className,
+        )}
+        {...props}
+      />
+    );
+  },
 );
 NativeSelect.displayName = "NativeSelect";

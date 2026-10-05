@@ -16,7 +16,7 @@ export default async function FooterPage({ params }: { params: Promise<{ locale:
     <>
       <AdminPageHeader title={t("footer.title")} subtitle={t("website.footerDesc")} back={{ href: `/${locale}/admin/website`, label: t("nav.website") }} />
       <Card>
-        <CardContent className="pt-6">
+        <CardContent className="pt-5 sm:pt-6">
           <FooterSettingsForm v={(s ?? {}) as Record<string, unknown> & { social_links?: { label: string; url: string }[] }} footerLogo={s?.footer_logo_media_id ? media[s.footer_logo_media_id] ?? null : null} />
         </CardContent>
       </Card>
