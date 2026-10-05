@@ -9,6 +9,7 @@ import deLocale from "@fullcalendar/core/locales/de";
 import enLocale from "@fullcalendar/core/locales/en-gb";
 import type { DateSelectArg, EventClickArg, EventInput, EventSourceFuncArg } from "@fullcalendar/core";
 import { useTranslations } from "next-intl";
+import { cn } from "@/lib/utils";
 
 export type CalendarSettings = {
   dayStart: string; // "07:00"
@@ -30,6 +31,8 @@ export type BaseCalendarProps = {
   selection?: { start: Date; end: Date } | null;
   onError?: () => void;
   height?: string | number;
+  initialView?: "dayGridMonth" | "timeGridWeek" | "timeGridDay";
+  className?: string;
 };
 
 /** Shared FullCalendar setup: Month / Week / Day, Europe/Berlin, localized. */
@@ -91,7 +94,7 @@ export function BaseCalendar(props: BaseCalendarProps) {
   const slot = `00:${String(props.settings.slotMinutes).padStart(2, "0")}:00`.replace("00:60:00", "01:00:00");
 
   return (
-    <div className="bv-calendar" data-testid="booking-calendar">
+    <div className={cn("bv-calendar rounded-2xl border bg-card p-3 shadow-xs sm:p-4", props.className)} data-testid="booking-calendar">
       <FullCalendar
         ref={ref}
         plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin, luxonPlugin]}
@@ -102,7 +105,7 @@ export function BaseCalendar(props: BaseCalendarProps) {
         allDayText={t("allDay")}
         noEventsText={t("noEvents")}
         firstDay={1}
-        initialView="timeGridWeek"
+        initialView={props.initialView ?? (typeof window !== "undefined" && window.innerWidth < 640 ? "timeGridDay" : "timeGridWeek")}
         initialDate={props.initialDate}
         headerToolbar={{ left: "prev,next today", center: "title", right: "dayGridMonth,timeGridWeek,timeGridDay" }}
         height={props.height ?? "auto"}

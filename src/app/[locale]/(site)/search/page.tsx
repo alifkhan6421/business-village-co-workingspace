@@ -55,7 +55,7 @@ export default async function SearchPage({ params, searchParams }: Props) {
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6">
-      <h1 className="mb-2 text-3xl font-semibold tracking-tight">
+      <h1 className="mb-2 text-3xl font-extrabold tracking-tight sm:text-4xl">
         {t("searchResultsTitle")} · {type === "room" ? t("typeRoom") : t("typeWorkspace")}
       </h1>
       {content}

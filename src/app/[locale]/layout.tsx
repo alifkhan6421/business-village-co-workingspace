@@ -1,11 +1,11 @@
 import { notFound } from "next/navigation";
-import { Inter } from "next/font/google";
+import { Plus_Jakarta_Sans } from "next/font/google";
 import { NextIntlClientProvider, hasLocale } from "next-intl";
 import { setRequestLocale } from "next-intl/server";
 import { Toaster } from "sonner";
 import { routing } from "@/i18n/routing";
 
-const inter = Inter({ subsets: ["latin", "latin-ext"], variable: "--font-inter", display: "swap" });
+const jakarta = Plus_Jakarta_Sans({ subsets: ["latin", "latin-ext"], variable: "--font-jakarta", display: "swap" });
 
 export default async function LocaleLayout({
   children,
@@ -19,7 +19,7 @@ export default async function LocaleLayout({
   setRequestLocale(locale);
 
   return (
-    <html lang={locale} className={inter.variable}>
+    <html lang={locale} className={jakarta.variable}>
       <body className="min-h-screen font-sans">
         <NextIntlClientProvider>
           {children}

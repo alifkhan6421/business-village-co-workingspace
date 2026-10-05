@@ -473,13 +473,13 @@ isOneToOne: false
                   ]
                 },"rooms": {
                   Row: {
-                    "capacity": number,"created_at": string,"display_order": number,"featured": boolean,"floor": string,"full_description_de": string,"full_description_en": string,"id": string,"name": string,"public_visible": boolean,"short_description_de": string,"short_description_en": string,"slug": string,"status": string,"updated_at": string
+                    "capacity": number,"created_at": string,"display_order": number,"featured": boolean,"floor": string,"full_description_de": string,"full_description_en": string,"id": string,"name": string,"price_daily": number | null,"price_hourly": number | null,"public_visible": boolean,"short_description_de": string,"short_description_en": string,"slug": string,"status": string,"updated_at": string
                   }
                   Insert: {
-                    "capacity"?: number,"created_at"?: string,"display_order"?: number,"featured"?: boolean,"floor"?: string,"full_description_de"?: string,"full_description_en"?: string,"id"?: string,"name": string,"public_visible"?: boolean,"short_description_de"?: string,"short_description_en"?: string,"slug": string,"status"?: string,"updated_at"?: string
+                    "capacity"?: number,"created_at"?: string,"display_order"?: number,"featured"?: boolean,"floor"?: string,"full_description_de"?: string,"full_description_en"?: string,"id"?: string,"name": string,"price_daily"?: number | null,"price_hourly"?: number | null,"public_visible"?: boolean,"short_description_de"?: string,"short_description_en"?: string,"slug": string,"status"?: string,"updated_at"?: string
                   }
                   Update: {
-                    "capacity"?: number,"created_at"?: string,"display_order"?: number,"featured"?: boolean,"floor"?: string,"full_description_de"?: string,"full_description_en"?: string,"id"?: string,"name"?: string,"public_visible"?: boolean,"short_description_de"?: string,"short_description_en"?: string,"slug"?: string,"status"?: string,"updated_at"?: string
+                    "capacity"?: number,"created_at"?: string,"display_order"?: number,"featured"?: boolean,"floor"?: string,"full_description_de"?: string,"full_description_en"?: string,"id"?: string,"name"?: string,"price_daily"?: number | null,"price_hourly"?: number | null,"public_visible"?: boolean,"short_description_de"?: string,"short_description_en"?: string,"slug"?: string,"status"?: string,"updated_at"?: string
                   }
                   Relationships: [
                     
@@ -573,13 +573,13 @@ isOneToOne: false
                   ]
                 },"workspaces": {
                   Row: {
-                    "capacity": number,"created_at": string,"desk_number": string | null,"display_order": number,"featured": boolean,"floor": string,"full_description_de": string,"full_description_en": string,"id": string,"name": string,"public_visible": boolean,"short_description_de": string,"short_description_en": string,"slug": string,"status": string,"updated_at": string,"zone": string
+                    "capacity": number,"created_at": string,"desk_number": string | null,"display_order": number,"featured": boolean,"floor": string,"full_description_de": string,"full_description_en": string,"id": string,"name": string,"price_daily": number | null,"price_hourly": number | null,"public_visible": boolean,"short_description_de": string,"short_description_en": string,"slug": string,"status": string,"updated_at": string,"zone": string
                   }
                   Insert: {
-                    "capacity"?: number,"created_at"?: string,"desk_number"?: string | null,"display_order"?: number,"featured"?: boolean,"floor"?: string,"full_description_de"?: string,"full_description_en"?: string,"id"?: string,"name": string,"public_visible"?: boolean,"short_description_de"?: string,"short_description_en"?: string,"slug": string,"status"?: string,"updated_at"?: string,"zone"?: string
+                    "capacity"?: number,"created_at"?: string,"desk_number"?: string | null,"display_order"?: number,"featured"?: boolean,"floor"?: string,"full_description_de"?: string,"full_description_en"?: string,"id"?: string,"name": string,"price_daily"?: number | null,"price_hourly"?: number | null,"public_visible"?: boolean,"short_description_de"?: string,"short_description_en"?: string,"slug": string,"status"?: string,"updated_at"?: string,"zone"?: string
                   }
                   Update: {
-                    "capacity"?: number,"created_at"?: string,"desk_number"?: string | null,"display_order"?: number,"featured"?: boolean,"floor"?: string,"full_description_de"?: string,"full_description_en"?: string,"id"?: string,"name"?: string,"public_visible"?: boolean,"short_description_de"?: string,"short_description_en"?: string,"slug"?: string,"status"?: string,"updated_at"?: string,"zone"?: string
+                    "capacity"?: number,"created_at"?: string,"desk_number"?: string | null,"display_order"?: number,"featured"?: boolean,"floor"?: string,"full_description_de"?: string,"full_description_en"?: string,"id"?: string,"name"?: string,"price_daily"?: number | null,"price_hourly"?: number | null,"public_visible"?: boolean,"short_description_de"?: string,"short_description_en"?: string,"slug"?: string,"status"?: string,"updated_at"?: string,"zone"?: string
                   }
                   Relationships: [
                     

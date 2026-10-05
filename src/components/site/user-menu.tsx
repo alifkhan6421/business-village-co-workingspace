@@ -21,9 +21,9 @@ export function UserMenu({ name, email, isAdmin }: { name: string; email: string
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="sm" className="gap-2" data-testid="user-menu">
-          <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-[10px] text-primary-foreground">{initials}</span>
-          <span className="hidden max-w-[10rem] truncate lg:inline">{name || email}</span>
+        <Button variant="ghost" size="sm" className="gap-2 rounded-full pl-1 pr-1 lg:pr-3" data-testid="user-menu">
+          <span className="flex h-7 w-7 items-center justify-center rounded-full bg-secondary text-[11px] font-bold text-secondary-foreground ring-1 ring-primary/10">{initials}</span>
+          <span className="hidden max-w-[9rem] truncate lg:inline">{(name || email).split(" ")[0]}</span>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">

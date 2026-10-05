@@ -15,6 +15,8 @@ const nextConfig: NextConfig = {
         port: supabaseHost.port,
         pathname: "/storage/v1/object/public/**",
       },
+      // Default stock photos until real photos are uploaded (see src/lib/stock-photos.ts).
+      { protocol: "https", hostname: "images.unsplash.com", pathname: "/photo-**" },
     ],
     formats: ["image/avif", "image/webp"],
   },

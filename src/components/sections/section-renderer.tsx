@@ -38,15 +38,15 @@ async function FeaturedResources({ section, locale, type }: { section: SectionVi
   const items = (featured.length ? featured : all).slice(0, num(section.settings.limit, 4));
   if (!items.length) return null;
   return (
-    <section className="py-16">
+    <section className="py-16 sm:py-20">
       <div className="mx-auto max-w-7xl px-4 sm:px-6">
-        <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
+        <div className="mb-10 flex flex-wrap items-end justify-between gap-4 [&>div]:mb-0">
           <SectionHeading title={section.title} subtitle={section.subtitle} center={false} />
           <Button asChild variant="outline">
             <a href={localizeHref(type === "workspace" ? "/coworking" : "/meeting-rooms", locale)}>{str(section.data.cta_label) || t("showAll")}</a>
           </Button>
         </div>
-        <div className={`grid gap-6 sm:grid-cols-2 ${items.length >= 4 ? "lg:grid-cols-4" : "lg:grid-cols-3"}`}>
+        <div className={`grid gap-6 sm:grid-cols-2 lg:grid-cols-3 ${items.length >= 4 ? "xl:grid-cols-4" : ""}`}>
           {items.map((r) => (
             <ResourceCard key={r.id} resource={r} locale={locale} />
           ))}
@@ -62,13 +62,13 @@ async function AmenitiesSection({ section, locale }: { section: SectionView; loc
   const list = (ids.length ? amenities.filter((a) => ids.includes(a.id)) : amenities).slice(0, num(section.settings.limit, 12));
   if (!list.length) return null;
   return (
-    <section className="py-16">
+    <section className="bg-surface py-16 sm:py-20">
       <div className="mx-auto max-w-7xl px-4 sm:px-6">
         <SectionHeading title={section.title} subtitle={section.subtitle} />
-        <ul className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+        <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
           {list.map((a) => (
-            <li key={a.id} className="flex min-w-0 items-center gap-3 rounded-xl border bg-card p-3 sm:p-4">
-              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+            <li key={a.id} className="flex min-w-0 items-center gap-3 rounded-2xl border bg-card p-3 shadow-xs sm:p-4">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-secondary text-primary">
                 <Icon name={a.icon} className="h-5 w-5" />
               </span>
               <span className="min-w-0 hyphens-auto break-words text-sm font-medium">{a.name}</span>
@@ -76,7 +76,7 @@ async function AmenitiesSection({ section, locale }: { section: SectionView; loc
           ))}
         </ul>
         {str(section.data.cta_label) ? (
-          <div className="mt-8 text-center">
+          <div className="mt-10 text-center">
             <Button asChild variant="outline">
               <a href={localizeHref("/amenities", locale)}>{str(section.data.cta_label)}</a>
             </Button>
@@ -95,11 +95,11 @@ async function AmenityListSection({ locale }: { locale: Locale }) {
     <section className="mx-auto max-w-7xl space-y-12 px-4 py-12 sm:px-6" data-testid="amenity-list">
       {groups.map((g) => (
         <div key={g.type}>
-          <h2 className="mb-5 text-xl font-semibold">{ts(`amenityType.${g.type}`)}</h2>
+          <h2 className="mb-5 text-xl font-bold tracking-tight">{ts(`amenityType.${g.type}`)}</h2>
           <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {g.items.map((a) => (
-              <li key={a.id} className="flex gap-4 rounded-xl border bg-card p-5">
-                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+              <li key={a.id} className="flex gap-4 rounded-2xl border bg-card p-5 shadow-xs">
+                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-secondary text-primary">
                   <Icon name={a.icon} className="h-5 w-5" />
                 </span>
                 <div>
@@ -121,12 +121,12 @@ async function ContactInfoSection({ section, locale }: { section: SectionView; l
   const label = (k: string, fallback: string) => str(section.data[k]) || fallback;
   const tc = await getTranslations({ locale, namespace: "common" });
   return (
-    <div className="space-y-6 rounded-xl border bg-card p-6 shadow-sm" data-testid="contact-info">
-      {section.title ? <h2 className="text-xl font-semibold">{section.title}</h2> : null}
+    <div className="h-fit space-y-6 rounded-2xl border bg-surface p-6 sm:p-8" data-testid="contact-info">
+      {section.title ? <h2 className="text-xl font-bold tracking-tight">{section.title}</h2> : null}
       <dl className="space-y-5 text-sm">
         {s.address_line_1 ? (
           <div className="flex gap-3">
-            <MapPin className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-background text-primary shadow-xs ring-1 ring-border"><MapPin className="h-4 w-4" /></span>
             <div>
               <dt className="font-medium">{label("address_label", tc("address"))}</dt>
               <dd className="text-muted-foreground">
@@ -143,7 +143,7 @@ async function ContactInfoSection({ section, locale }: { section: SectionView; l
         ) : null}
         {s.phone ? (
           <div className="flex gap-3">
-            <Phone className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-background text-primary shadow-xs ring-1 ring-border"><Phone className="h-4 w-4" /></span>
             <div>
               <dt className="font-medium">{label("phone_label", tc("phone"))}</dt>
               <dd><a className="text-muted-foreground hover:text-foreground" href={`tel:${s.phone.replace(/[^+0-9]/g, "")}`} data-testid="contact-phone">{s.phone}</a></dd>
@@ -152,7 +152,7 @@ async function ContactInfoSection({ section, locale }: { section: SectionView; l
         ) : null}
         {s.general_email ? (
           <div className="flex gap-3">
-            <Mail className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-background text-primary shadow-xs ring-1 ring-border"><Mail className="h-4 w-4" /></span>
             <div>
               <dt className="font-medium">{label("email_label", tc("email"))}</dt>
               <dd><a className="text-muted-foreground hover:text-foreground" href={`mailto:${s.general_email}`} data-testid="contact-email">{s.general_email}</a></dd>
@@ -161,7 +161,7 @@ async function ContactInfoSection({ section, locale }: { section: SectionView; l
         ) : null}
         {hours ? (
           <div className="flex gap-3">
-            <Clock className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-background text-primary shadow-xs ring-1 ring-border"><Clock className="h-4 w-4" /></span>
             <div>
               <dt className="font-medium">{label("hours_label", tc("openingHours"))}</dt>
               <dd className="whitespace-pre-line text-muted-foreground" data-testid="contact-hours">{hours}</dd>
@@ -226,14 +226,16 @@ export async function SectionRenderer({
   const contactForm = sections.find((s) => s.type === "contact_form");
 
   const out: React.ReactNode[] = [];
-  for (const s of sections) {
+  sections.forEach((s, index) => {
+    const prev = sections[index - 1];
+    const next = sections[index + 1];
     const key = s.id;
     switch (s.type) {
       case "hero":
-        out.push(<HeroSection key={key} section={s} locale={locale} />);
+        out.push(<HeroSection key={key} section={s} locale={locale} withSearch={next?.type === "availability_search"} />);
         break;
       case "availability_search":
-        out.push(<AvailabilitySearch key={key} title={s.title} subtitle={s.subtitle} times={times} today={todayBerlin()} />);
+        out.push(<AvailabilitySearch key={key} title={s.title} subtitle={s.subtitle} times={times} today={todayBerlin()} overlap={prev?.type === "hero"} />);
         break;
       case "page_header":
         out.push(<PageHeaderSection key={key} section={s} locale={locale} />);
@@ -283,7 +285,7 @@ export async function SectionRenderer({
         break;
       case "contact_info":
         out.push(
-          <section key={key} className="mx-auto grid max-w-7xl gap-8 px-4 py-12 sm:px-6 lg:grid-cols-[1fr_1.4fr]">
+          <section key={key} className="mx-auto grid max-w-7xl gap-8 px-4 py-12 sm:px-6 lg:grid-cols-[1fr_1.4fr] lg:gap-12 lg:py-16">
             <ContactInfoSection section={s} locale={locale} />
             {contactForm ? (
               <ContactForm title={contactForm.title} intro={contactForm.subtitle} successMessage={str(contactForm.data.success_message)} />
@@ -305,7 +307,7 @@ export async function SectionRenderer({
         if (url && isAllowedMapUrl(url)) {
           out.push(
             <section key={key} className="mx-auto max-w-7xl px-4 pb-12 sm:px-6">
-              {s.title ? <h2 className="mb-4 text-xl font-semibold">{s.title}</h2> : null}
+              {s.title ? <h2 className="mb-4 text-xl font-bold tracking-tight">{s.title}</h2> : null}
               <MapEmbed url={url} title={s.title} />
             </section>,
           );
@@ -315,6 +317,6 @@ export async function SectionRenderer({
       default:
         break;
     }
-  }
+  });
   return <>{out}</>;
 }
