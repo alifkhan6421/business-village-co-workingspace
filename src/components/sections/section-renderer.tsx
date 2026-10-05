@@ -124,11 +124,11 @@ async function ContactInfoSection({ section, locale }: { section: SectionView; l
   return (
     <div className="h-fit space-y-6 rounded-2xl border bg-surface p-6 sm:p-8" data-testid="contact-info">
       {section.title ? <h2 className="text-xl font-bold tracking-tight">{section.title}</h2> : null}
-      <dl className="space-y-5 text-sm">
+      <div className="space-y-5 text-sm">
         {s.address_line_1 ? (
           <div className="flex gap-3">
             <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-background text-primary shadow-xs ring-1 ring-border"><MapPin className="h-4 w-4" /></span>
-            <div>
+            <dl>
               <dt className="font-medium">{label("address_label", tc("address"))}</dt>
               <dd className="text-muted-foreground">
                 {s.company_name}
@@ -139,37 +139,37 @@ async function ContactInfoSection({ section, locale }: { section: SectionView; l
                 {s.postcode} {s.city}
                 {s.country ? <><br />{s.country}</> : null}
               </dd>
-            </div>
+            </dl>
           </div>
         ) : null}
         {s.phone ? (
           <div className="flex gap-3">
             <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-background text-primary shadow-xs ring-1 ring-border"><Phone className="h-4 w-4" /></span>
-            <div>
+            <dl>
               <dt className="font-medium">{label("phone_label", tc("phone"))}</dt>
               <dd><a className="text-muted-foreground hover:text-foreground" href={`tel:${s.phone.replace(/[^+0-9]/g, "")}`} data-testid="contact-phone">{s.phone}</a></dd>
-            </div>
+            </dl>
           </div>
         ) : null}
         {s.general_email ? (
           <div className="flex gap-3">
             <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-background text-primary shadow-xs ring-1 ring-border"><Mail className="h-4 w-4" /></span>
-            <div>
+            <dl>
               <dt className="font-medium">{label("email_label", tc("email"))}</dt>
               <dd><a className="text-muted-foreground hover:text-foreground" href={`mailto:${s.general_email}`} data-testid="contact-email">{s.general_email}</a></dd>
-            </div>
+            </dl>
           </div>
         ) : null}
         {hours ? (
           <div className="flex gap-3">
             <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-background text-primary shadow-xs ring-1 ring-border"><Clock className="h-4 w-4" /></span>
-            <div>
+            <dl>
               <dt className="font-medium">{label("hours_label", tc("openingHours"))}</dt>
               <dd className="whitespace-pre-line text-muted-foreground" data-testid="contact-hours">{hours}</dd>
-            </div>
+            </dl>
           </div>
         ) : null}
-      </dl>
+      </div>
     </div>
   );
 }

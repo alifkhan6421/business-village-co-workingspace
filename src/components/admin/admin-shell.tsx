@@ -86,7 +86,7 @@ function NavList({ onNavigate, badges, collapsed }: { onNavigate?: () => void; b
           {collapsed ? (
             <div className="mx-auto mb-2 h-px w-6 bg-border" aria-hidden="true" />
           ) : (
-            <div className="px-3 pb-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/80">{t(g.key)}</div>
+            <div className="px-3 pb-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">{t(g.key)}</div>
           )}
           <ul className="flex flex-col gap-0.5">
             {g.items.map((i) => {

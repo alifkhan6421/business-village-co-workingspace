@@ -45,7 +45,7 @@ export default async function WebsiteHub({ params }: { params: Promise<{ locale:
       </div>
       <p className="mt-6 text-sm text-muted-foreground">
         {t("website.businessInfoHint")}{" "}
-        <Link href={`/${locale}/admin/settings#business`} className="text-primary hover:underline">{t("website.editBusinessInfo")} →</Link>
+        <Link href={`/${locale}/admin/settings#business`} className="font-medium text-primary underline underline-offset-2 hover:no-underline">{t("website.editBusinessInfo")} →</Link>
       </p>
     </>
   );

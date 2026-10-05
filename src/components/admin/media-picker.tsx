@@ -60,6 +60,8 @@ export function UploadButton({
         accept="image/jpeg,image/png,image/webp,image/avif"
         multiple={multiple}
         className="sr-only"
+        tabIndex={-1}
+        aria-label={label ?? t("upload")}
         data-testid="media-upload-input"
         onChange={async (e) => {
           const files = e.target.files;
@@ -307,6 +309,7 @@ export function UploadDropzone({ onUploaded, className }: { onUploaded: (items: 
         multiple
         className="sr-only"
         tabIndex={-1}
+        aria-label={t("dropTitle")}
         onChange={async (e) => {
           await handle(e.target.files);
           e.target.value = "";

@@ -105,12 +105,12 @@ export async function ResourceDetail({
           <section className="grid gap-6 border-t pt-10 sm:grid-cols-2">
             <div>
               <h2 className="mb-3 flex items-center gap-2 font-semibold"><MapPin className="h-4 w-4 text-primary" /> {t("location")}</h2>
-              <dl className="space-y-1.5 text-sm text-muted-foreground">
-                <dd>{[settings.company_name, address].filter(Boolean).join(", ")}</dd>
-                {resource.floor ? <dd className="flex items-center gap-1.5"><Layers className="h-3.5 w-3.5" /> {t("floor")}: {resource.floor}</dd> : null}
-                {resource.zone ? <dd className="flex items-center gap-1.5"><MapPin className="h-3.5 w-3.5" /> {t("zone")}: {resource.zone}</dd> : null}
-                {resource.deskNumber ? <dd className="flex items-center gap-1.5"><Hash className="h-3.5 w-3.5" /> {t("deskNumber")}: {resource.deskNumber}</dd> : null}
-              </dl>
+              <ul className="space-y-1.5 text-sm text-muted-foreground">
+                <li>{[settings.company_name, address].filter(Boolean).join(", ")}</li>
+                {resource.floor ? <li className="flex items-center gap-1.5"><Layers className="h-3.5 w-3.5" /> {t("floor")}: {resource.floor}</li> : null}
+                {resource.zone ? <li className="flex items-center gap-1.5"><MapPin className="h-3.5 w-3.5" /> {t("zone")}: {resource.zone}</li> : null}
+                {resource.deskNumber ? <li className="flex items-center gap-1.5"><Hash className="h-3.5 w-3.5" /> {t("deskNumber")}: {resource.deskNumber}</li> : null}
+              </ul>
             </div>
             {hours ? (
               <div>
