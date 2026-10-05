@@ -20,7 +20,7 @@ export type LocalField =
   | { key: "title" | "subtitle"; kind: "text" | "textarea"; max: number }
   | { key: "content"; kind: "rich" }
   | { key: string; kind: "text" | "textarea"; max: number; data: true }
-  | { key: "items"; kind: "cards" | "faq"; data: true };
+  | { key: "items"; kind: "cards" | "faq" | "quotes"; data: true };
 
 export type SectionConfig = { media?: boolean; shared: SharedField[]; local: LocalField[] };
 
@@ -46,6 +46,7 @@ export const SECTION_CONFIG: Record<string, SectionConfig> = {
     local: [title, subtitle, d("button_label", 60)],
   },
   faq: { shared: [], local: [title, subtitle, { key: "items", kind: "faq", data: true }] },
+  testimonials: { shared: [], local: [title, subtitle, { key: "items", kind: "quotes", data: true }] },
   gallery: { shared: [{ key: "media_ids", kind: "mediaList" }], local: [title, subtitle] },
   amenities: { shared: [{ key: "amenity_ids", kind: "amenityList" }, { key: "limit", kind: "number", min: 1, max: 50 }], local: [title, subtitle, d("cta_label", 60)] },
   rooms: { shared: [{ key: "limit", kind: "number", min: 1, max: 12 }], local: [title, subtitle, d("cta_label", 60)] },

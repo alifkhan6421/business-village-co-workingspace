@@ -807,7 +807,11 @@
       "uploading": "Uploading …",
       "uploaded": "{count, plural, one {# image} other {# images}} uploaded.",
       "removeHint": "The image stays in the media library.",
-      "unsaved": "Unsaved changes"
+      "unsaved": "Unsaved changes",
+      "dropTitle": "Drag images here or click",
+      "dropHint": "JPG, PNG, WebP or AVIF, several at once",
+      "dragHint": "Drag the images to change their order. The cover appears on the cards.",
+      "replace": "Replace image"
     },
     "amenities": {
       "title": "Amenities",
@@ -1047,7 +1051,8 @@
         "contact_form": "Contact form",
         "map": "Map",
         "imprint": "Imprint",
-        "custom": "Free content"
+        "custom": "Free content",
+        "testimonials": "Testimonials"
       },
       "sectionActive": "Active",
       "sectionInactive": "Hidden",
@@ -1111,7 +1116,10 @@
         "additionalText": "Additional legal text",
         "sharedFields": "Shared details (both languages)",
         "localizedFields": "Language-specific content",
-        "noFields": "This section is filled automatically from the database. You can show, hide or move it."
+        "noFields": "This section is filled automatically from the database. You can show, hide or move it.",
+        "quote": "Quote",
+        "quoteName": "Name",
+        "quoteRole": "Company or role"
       },
       "slugSystemHint": "New pages are available at /p/<URL name> (English) and /seite/<URL name> (German).",
       "deletePage": "Delete page"

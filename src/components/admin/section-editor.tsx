@@ -33,9 +33,9 @@ export type SectionData = {
   en: Tr;
 };
 
-type Item = { icon?: string; title?: string; text?: string; question?: string; answer?: string };
+type Item = { icon?: string; title?: string; text?: string; question?: string; answer?: string; quote?: string; name?: string; role?: string };
 
-function ItemsEditor({ name, kind, initial }: { name: string; kind: "cards" | "faq"; initial: Item[] }) {
+function ItemsEditor({ name, kind, initial }: { name: string; kind: "cards" | "faq" | "quotes"; initial: Item[] }) {
   const t = useTranslations("admin.pages.fields");
   const tc = useTranslations("common");
   const [items, setItems] = useState<Item[]>(initial);
@@ -69,6 +69,14 @@ function ItemsEditor({ name, kind, initial }: { name: string; kind: "cards" | "f
                 </div>
                 <Textarea value={it.text ?? ""} onChange={(e) => set(i, { text: e.target.value })} placeholder={t("itemText")} aria-label={t("itemText")} rows={2} maxLength={1000} />
               </>
+            ) : kind === "quotes" ? (
+              <>
+                <Textarea value={it.quote ?? ""} onChange={(e) => set(i, { quote: e.target.value })} placeholder={t("quote")} aria-label={t("quote")} rows={3} maxLength={1000} />
+                <div className="grid gap-2 sm:grid-cols-2">
+                  <Input value={it.name ?? ""} onChange={(e) => set(i, { name: e.target.value })} placeholder={t("quoteName")} aria-label={t("quoteName")} maxLength={120} />
+                  <Input value={it.role ?? ""} onChange={(e) => set(i, { role: e.target.value })} placeholder={t("quoteRole")} aria-label={t("quoteRole")} maxLength={160} />
+                </div>
+              </>
             ) : (
               <>
                 <Input value={it.question ?? ""} onChange={(e) => set(i, { question: e.target.value })} placeholder={t("question")} aria-label={t("question")} maxLength={300} />
@@ -83,7 +91,7 @@ function ItemsEditor({ name, kind, initial }: { name: string; kind: "cards" | "f
           </div>
         </div>
       ))}
-      <Button type="button" variant="outline" size="sm" onClick={() => setItems((x) => [...x, kind === "cards" ? { icon: "check", title: "", text: "" } : { question: "", answer: "" }])} disabled={items.length >= 24}>
+      <Button type="button" variant="outline" size="sm" onClick={() => setItems((x) => [...x, kind === "cards" ? { icon: "check", title: "", text: "" } : kind === "quotes" ? { quote: "", name: "", role: "" } : { question: "", answer: "" }])} disabled={items.length >= 24}>
         <Plus /> {t("addItem")}
       </Button>
     </div>
@@ -182,7 +190,7 @@ function LocalInputs({ fields, l, tr, fe }: { fields: LocalField[]; l: "de" | "e
         const name = `${l}_${f.key}`;
         const label = t(FIELD_LABELS[f.key] ?? f.key);
         if (f.kind === "rich") return <Field key={name} label={label} error={fe(name)}><RichTextEditor name={name} defaultValue={tr.content} /></Field>;
-        if (f.kind === "cards" || f.kind === "faq") {
+        if (f.kind === "cards" || f.kind === "faq" || f.kind === "quotes") {
           const items = Array.isArray(tr.data.items) ? (tr.data.items as Item[]) : [];
           return <Field key={name} label={label} error={fe(name)}><ItemsEditor name={name} kind={f.kind} initial={items} /></Field>;
         }
