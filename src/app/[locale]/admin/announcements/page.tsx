@@ -28,7 +28,7 @@ export default async function AnnouncementsPage({ params }: { params: Promise<{ 
       {(data ?? []).length === 0 ? (
         <EmptyState title={t("announcements.empty")} />
       ) : (
-        <Table>
+        <Table stack>
           <THead>
             <TR>
               <TH>{t("announcements.titleField")}</TH>

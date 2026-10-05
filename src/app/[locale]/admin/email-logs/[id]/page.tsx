@@ -20,7 +20,7 @@ export default async function EmailLogDetail({ params }: { params: Promise<{ loc
       <AdminPageHeader title={e.subject} back={{ href: `/${locale}/admin/email-logs`, label: t("nav.emailLogs") }} />
       <div className="grid gap-6 lg:grid-cols-[320px_1fr]">
         <Card>
-          <CardContent className="pt-6">
+          <CardContent className="pt-5 sm:pt-6">
             <dl className="space-y-2 text-sm">
               <div><dt className="text-muted-foreground">{t("emailLogs.recipient")}</dt><dd className="break-all">{e.recipient}</dd></div>
               <div><dt className="text-muted-foreground">{t("emailLogs.type")}</dt><dd>{t.has(`emailLogs.types.${e.email_type}`) ? t(`emailLogs.types.${e.email_type}`) : e.email_type}</dd></div>

@@ -33,7 +33,7 @@ export function ResetForm() {
       <Field label={t("confirmPassword")} htmlFor="confirmPassword" error={fieldErr(fe.confirmPassword)}>
         <Input id="confirmPassword" name="confirmPassword" type="password" autoComplete="new-password" aria-invalid={!!fe.confirmPassword} />
       </Field>
-      <SubmitButton pending={pending} className="w-full" pendingLabel={t("resetButton")}>
+      <SubmitButton pending={pending} size="lg" className="w-full" pendingLabel={t("resetButton")}>
         {t("resetButton")}
       </SubmitButton>
     </form>

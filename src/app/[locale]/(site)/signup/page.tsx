@@ -19,7 +19,7 @@ export default async function SignupPage({ params }: Props) {
   setRequestLocale(locale);
   const t = await getTranslations({ locale, namespace: "auth" });
   return (
-    <AuthShell
+    <AuthShell wide
       title={t("signupTitle")}
       subtitle={t("signupSubtitle")}
       footer={

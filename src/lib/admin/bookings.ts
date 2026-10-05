@@ -214,7 +214,12 @@ export type CalendarEvent = {
   customer?: "member" | "guest";
   resourceType: "workspace" | "room";
   resourceId: string;
+  resourceName: string;
   reference?: string;
+  customerName?: string;
+  email?: string;
+  phone?: string | null;
+  source?: string;
 };
 
 /** Bookings + blocks in a window for the admin calendar (max. ~100 days). */
@@ -225,7 +230,7 @@ export async function adminCalendarEvents(from: string, to: string, filter: { ty
     if (isNaN(+f) || isNaN(+t) || +t - +f > 100 * 86400000) return fail("validation");
     let q = ctx.supabase
       .from("bookings")
-      .select("id, booking_reference, booking_type, workspace_id, room_id, user_id, guest_id, start_at, end_at, status, workspace:workspaces(name), room:rooms(name), guest:guests(first_name,last_name), member:profiles!bookings_user_id_fkey(full_name,email)")
+      .select("id, booking_reference, booking_type, workspace_id, room_id, user_id, guest_id, start_at, end_at, status, source, workspace:workspaces(name), room:rooms(name), guest:guests(first_name,last_name,email,phone), member:profiles!bookings_user_id_fkey(full_name,email,phone)")
       .lt("start_at", t.toISOString())
       .gt("end_at", f.toISOString())
       .limit(2000);
@@ -238,21 +243,31 @@ export async function adminCalendarEvents(from: string, to: string, filter: { ty
     if (error) return fail("unknown");
     type Row = {
       id: string; booking_reference: string; booking_type: "workspace" | "room"; workspace_id: string | null; room_id: string | null; user_id: string | null;
-      start_at: string; end_at: string; status: string; workspace: { name: string } | null; room: { name: string } | null;
-      guest: { first_name: string; last_name: string } | null; member: { full_name: string | null; email: string } | null;
+      start_at: string; end_at: string; status: string; source: string; workspace: { name: string } | null; room: { name: string } | null;
+      guest: { first_name: string; last_name: string; email: string; phone: string | null } | null;
+      member: { full_name: string | null; email: string; phone: string | null } | null;
     };
-    const events: CalendarEvent[] = ((data ?? []) as unknown as Row[]).map((b) => ({
-      id: b.id,
-      kind: "booking",
-      title: `${b.workspace?.name ?? b.room?.name ?? ""} · ${b.member ? b.member.full_name || b.member.email : `${b.guest?.first_name ?? ""} ${b.guest?.last_name ?? ""}`.trim()}`,
-      start: b.start_at,
-      end: b.end_at,
-      status: b.status,
-      customer: b.user_id ? "member" : "guest",
-      resourceType: b.booking_type,
-      resourceId: (b.workspace_id ?? b.room_id)!,
-      reference: b.booking_reference,
-    }));
+    const events: CalendarEvent[] = ((data ?? []) as unknown as Row[]).map((b) => {
+      const resourceName = b.workspace?.name ?? b.room?.name ?? "";
+      const customerName = b.member ? b.member.full_name || b.member.email : `${b.guest?.first_name ?? ""} ${b.guest?.last_name ?? ""}`.trim();
+      return {
+        id: b.id,
+        kind: "booking",
+        title: `${resourceName} · ${customerName}`,
+        start: b.start_at,
+        end: b.end_at,
+        status: b.status,
+        customer: b.user_id ? "member" : "guest",
+        resourceType: b.booking_type,
+        resourceId: (b.workspace_id ?? b.room_id)!,
+        resourceName,
+        reference: b.booking_reference,
+        customerName,
+        email: b.member?.email ?? b.guest?.email ?? "",
+        phone: b.member?.phone ?? b.guest?.phone ?? null,
+        source: b.source,
+      };
+    });
     if (filter.blocks !== false) {
       let bq = ctx.supabase
         .from("resource_blocks")
@@ -271,6 +286,7 @@ export async function adminCalendarEvents(from: string, to: string, filter: { ty
           end: b.end_at,
           resourceType: b.resource_type,
           resourceId: (b.workspace_id ?? b.room_id)!,
+          resourceName: b.workspace?.name ?? b.room?.name ?? "",
         });
       }
     }

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { getFormatter, getTranslations } from "next-intl/server";
-import { Plus } from "lucide-react";
+import { ChevronRight, Plus } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { AdminPageHeader } from "@/components/admin/admin-shell";
 import { ListFilters, Pagination, buildHref, searchTerm } from "@/components/admin/list-tools";
@@ -109,7 +109,34 @@ export default async function BookingsPage({ params, searchParams }: { params: P
       {rows.length === 0 ? (
         <EmptyState title={t("common.noResults")} />
       ) : (
-        <Table>
+        <>
+        <ul className="space-y-3 md:hidden" data-testid="booking-cards">
+          {rows.map((b) => {
+            const c = customerOf(b);
+            return (
+              <li key={b.id}>
+                <Link href={`${base}/${b.id}`} className="block rounded-2xl border bg-card p-4 shadow-xs transition-colors hover:border-primary/30">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="truncate font-semibold">{resourceName(b)}</div>
+                      <div className="truncate text-sm text-muted-foreground">{c.name}</div>
+                    </div>
+                    <StatusBadge kind="booking" value={b.status} />
+                  </div>
+                  <div className="mt-3 text-sm">{formatBookingRange(f, b.start_at, b.end_at)}</div>
+                  <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                    <span className="font-mono font-semibold text-primary">{b.booking_reference}</span>
+                    <span aria-hidden="true">·</span>
+                    <span>{c.kind === "member" ? t("bookings.member") : t("bookings.guest")}</span>
+                    <span aria-hidden="true">·</span>
+                    <span>{ts(`source.${b.source}`)}</span>
+                  </div>
+                </Link>
+              </li>
+            );
+          })}
+        </ul>
+        <Table wrapperClassName="hidden md:block">
           <THead>
             <TR>
               <TH>{t("bookings.reference")}</TH>
@@ -118,6 +145,8 @@ export default async function BookingsPage({ params, searchParams }: { params: P
               <TH>{t("bookings.when")}</TH>
               <TH>{t("common.status")}</TH>
               <TH className="hidden lg:table-cell">{t("bookings.source")}</TH>
+              <TH className="hidden xl:table-cell">{t("bookings.created")}</TH>
+              <TH className="w-12"><span className="sr-only">{t("common.actions")}</span></TH>
             </TR>
           </THead>
           <TBody>
@@ -145,11 +174,18 @@ export default async function BookingsPage({ params, searchParams }: { params: P
                     <StatusBadge kind="booking" value={b.status} />
                   </TD>
                   <TD className="hidden lg:table-cell text-sm text-muted-foreground">{ts(`source.${b.source}`)}</TD>
+                  <TD className="hidden xl:table-cell whitespace-nowrap text-sm text-muted-foreground">{f.dateTime(new Date(b.created_at), "dateTime")}</TD>
+                  <TD>
+                    <Link href={`${base}/${b.id}`} className={buttonVariants({ variant: "ghost", size: "icon-sm" })} aria-label={`${t("common.open")} ${b.booking_reference}`}>
+                      <ChevronRight />
+                    </Link>
+                  </TD>
                 </TR>
               );
             })}
           </TBody>
         </Table>
+        </>
       )}
       <Pagination page={page} total={count ?? 0} perPage={PER_PAGE} makeHref={(p) => buildHref(base, { ...keep, page: p })} />
     </>

@@ -30,7 +30,7 @@ export default async function AnnouncementEdit({ params }: { params: Promise<{ l
         back={{ href: `/${locale}/admin/announcements`, label: t("nav.announcements") }}
       />
       <Card>
-        <CardContent className="pt-6">
+        <CardContent className="pt-5 sm:pt-6">
           <AnnouncementForm a={values} />
         </CardContent>
       </Card>

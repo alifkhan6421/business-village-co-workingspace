@@ -79,12 +79,22 @@
   :focus-visible {
     outline-color: var(--ring);
   }
+  /* Grid children may shrink below their content width, so long text or wide
+     controls wrap instead of pushing the page sideways on phones. */
+  .grid > * {
+    min-width: 0;
+  }
   /* Form controls never grow past their column (grid/flex items default to min-width: auto). */
   input,
   select,
   textarea {
     min-width: 0;
     max-width: 100%;
+  }
+  /* Checkboxes and radios keep their size next to labels that wrap. */
+  input[type="checkbox"],
+  input[type="radio"] {
+    flex-shrink: 0;
   }
   /* iOS Safari gives date/time inputs a fixed intrinsic width and centred text, which pushes
      them out of their card. Reset the native look so they behave like a text input. */

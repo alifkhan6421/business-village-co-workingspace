@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { notFound } from "next/navigation";
-import { ExternalLink, Plus, Star } from "lucide-react";
+import { ExternalLink, Image as ImageIcon, ImageOff, Pencil, Plus, Star, Users } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { AdminPageHeader } from "./admin-shell";
 import { ListFilters, searchTerm } from "./list-tools";
@@ -11,7 +11,10 @@ import { GalleryManager } from "./gallery-manager";
 import { BlocksManager } from "./blocks-manager";
 import { DeleteButton } from "./delete-button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Table, TBody, TD, TH, THead, TR } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { ResourceCardActions } from "./resource-card-actions";
+import { formatPrice } from "@/lib/price";
+import { cn } from "@/lib/utils";
 import { buttonVariants } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/states";
 import { deleteResource, type ResourceKind } from "@/lib/admin/resources";
@@ -28,6 +31,8 @@ type ImgRow = { display_order: number; is_cover: boolean; media: MediaItem | nul
 export async function ResourceListPage({ kind, locale, q, status }: { kind: ResourceKind; locale: Locale; q?: string; status?: string }) {
   const t = await getTranslations({ locale, namespace: "admin" });
   const ts = await getTranslations({ locale, namespace: "status.resource" });
+  const tt = await getTranslations({ locale, namespace: "status.bookingType" });
+  const tsite = await getTranslations({ locale, namespace: "site" });
   const supabase = await createClient();
   const imgRel = kind === "workspace" ? "workspace_images(display_order, is_cover, media(*))" : "room_images(display_order, is_cover, media(*))";
   let query = supabase.from(PLURAL[kind]).select(`*, ${imgRel}`).order("display_order").order("name");
@@ -63,51 +68,80 @@ export async function ResourceListPage({ kind, locale, q, status }: { kind: Reso
       {rows.length === 0 ? (
         <EmptyState title={t("common.noResults")} />
       ) : (
-        <Table>
-          <THead>
-            <TR>
-              <TH className="w-20">{t("media.thumbnail")}</TH>
-              <TH>{t("common.name")}</TH>
-              <TH className="hidden md:table-cell">{t("resources.floor")}</TH>
-              <TH>{t("resources.capacity")}</TH>
-              <TH>{t("common.status")}</TH>
-              <TH className="hidden md:table-cell">{t("common.visible")}</TH>
-              <TH className="hidden lg:table-cell">{t("resources.images")}</TH>
-            </TR>
-          </THead>
-          <TBody>
-            {rows.map((r) => {
-              const imgs = [...((kind === "workspace" ? r.workspace_images : r.room_images) ?? [])].sort((a, b) => a.display_order - b.display_order);
-              const cover = imgs.find((i) => i.is_cover) ?? imgs[0];
-              return (
-                <TR key={r.id}>
-                  <TD>
-                    {cover?.media ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={cover.media.file_url} alt="" className="h-10 w-14 rounded object-cover" />
-                    ) : (
-                      <div className="h-10 w-14 rounded bg-muted" />
-                    )}
-                  </TD>
-                  <TD>
-                    <Link href={`${base}/${r.id}`} className="font-medium hover:underline">
-                      {r.name}
-                    </Link>
-                    {r.featured ? <Star className="ml-1 inline h-3.5 w-3.5 fill-amber-400 text-amber-500" aria-label={t("resources.featured")} /> : null}
-                    <div className="text-xs text-muted-foreground">/{r.slug}</div>
-                  </TD>
-                  <TD className="hidden md:table-cell">{r.floor}</TD>
-                  <TD>{r.capacity}</TD>
-                  <TD>
+        <ul className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3" data-testid="admin-resource-grid">
+          {rows.map((r) => {
+            const imgs = [...((kind === "workspace" ? r.workspace_images : r.room_images) ?? [])].sort((a, b) => a.display_order - b.display_order);
+            const cover = imgs.find((i) => i.is_cover) ?? imgs[0];
+            const hourly = r.price_hourly != null && r.price_hourly !== "" ? Number(r.price_hourly) : null;
+            const daily = r.price_daily != null && r.price_daily !== "" ? Number(r.price_daily) : null;
+            const publicHref = localizeHref(`/${kind === "workspace" ? "coworking" : "meeting-rooms"}/${r.slug}`, locale);
+            return (
+              <li key={r.id} className={cn("flex flex-col overflow-hidden rounded-2xl border bg-card shadow-xs", r.status === "disabled" && "opacity-70")}>
+                <Link href={`${base}/${r.id}`} className="relative block aspect-[16/9] bg-muted" tabIndex={-1} aria-hidden="true">
+                  {cover?.media ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={cover.media.file_url} alt="" loading="lazy" className="h-full w-full object-cover" />
+                  ) : (
+                    <span className="flex h-full items-center justify-center text-muted-foreground">
+                      <ImageOff className="h-6 w-6" />
+                    </span>
+                  )}
+                  <span className="absolute left-3 top-3 flex gap-1.5">
                     <StatusBadge kind="resource" value={r.status} />
-                  </TD>
-                  <TD className="hidden md:table-cell">{r.public_visible ? t("common.yes") : t("common.no")}</TD>
-                  <TD className="hidden lg:table-cell">{t("resources.imagesCount", { count: imgs.length })}</TD>
-                </TR>
-              );
-            })}
-          </TBody>
-        </Table>
+                    {!r.public_visible ? <Badge variant="neutral">{t("common.hidden")}</Badge> : null}
+                  </span>
+                  {r.featured ? (
+                    <span className="absolute right-3 top-3 rounded-full bg-white/95 p-1.5 shadow-xs" title={t("resources.featured")}>
+                      <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-500" aria-label={t("resources.featured")} />
+                    </span>
+                  ) : null}
+                </Link>
+                <div className="flex flex-1 flex-col p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <Link href={`${base}/${r.id}`} className="block truncate font-semibold hover:underline">
+                        {r.name}
+                      </Link>
+                      <p className="truncate text-xs text-muted-foreground">
+                        {tt(kind)}
+                        {r.floor ? ` · ${r.floor}` : ""}
+                      </p>
+                    </div>
+                    <p className="shrink-0 text-right text-sm">
+                      {hourly !== null ? (
+                        <>
+                          <span className="font-semibold">{formatPrice(hourly, locale)}</span>
+                          <span className="text-muted-foreground"> {tsite("perHour")}</span>
+                        </>
+                      ) : daily !== null ? (
+                        <>
+                          <span className="font-semibold">{formatPrice(daily, locale)}</span>
+                          <span className="text-muted-foreground"> {tsite("perDay")}</span>
+                        </>
+                      ) : (
+                        <span className="text-muted-foreground">{t("resources.noPrice")}</span>
+                      )}
+                    </p>
+                  </div>
+                  <p className="mt-2 flex items-center gap-3 text-xs text-muted-foreground">
+                    <span className="inline-flex items-center gap-1">
+                      <Users className="h-3.5 w-3.5" /> {r.capacity}
+                    </span>
+                    <span className="inline-flex items-center gap-1">
+                      <ImageIcon className="h-3.5 w-3.5" /> {t("resources.imagesCount", { count: imgs.length })}
+                    </span>
+                  </p>
+                  <div className="mt-auto flex gap-2 pt-4">
+                    <Link href={`${base}/${r.id}`} className={buttonVariants({ variant: "outline", size: "sm", className: "flex-1" })}>
+                      <Pencil /> {t("common.edit")}
+                    </Link>
+                    <ResourceCardActions kind={kind} id={r.id} name={r.name} status={r.status} publicHref={publicHref} />
+                  </div>
+                </div>
+              </li>
+            );
+          })}
+        </ul>
       )}
     </>
   );

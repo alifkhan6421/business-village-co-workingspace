@@ -79,7 +79,7 @@ export function SignupForm() {
         </label>
         <FieldError message={fieldErr(fe.privacy)} />
       </div>
-      <SubmitButton pending={pending} className="w-full" pendingLabel={t("signupButton")}>
+      <SubmitButton pending={pending} size="lg" className="w-full" pendingLabel={t("signupButton")}>
         {t("signupButton")}
       </SubmitButton>
     </form>

@@ -37,7 +37,7 @@ export default async function ActivityPage({ params, searchParams }: { params: P
       {(data ?? []).length === 0 ? (
         <EmptyState title={tc("noResults")} />
       ) : (
-        <Table>
+        <Table stack>
           <THead>
             <TR>
               <TH>{tc("date")}</TH>

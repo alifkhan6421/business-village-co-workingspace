@@ -43,7 +43,7 @@ export default async function UsersPage({ params, searchParams }: { params: Prom
       {(data ?? []).length === 0 ? (
         <EmptyState title={t("common.noResults")} />
       ) : (
-        <Table>
+        <Table stack>
           <THead>
             <TR>
               <TH>{t("common.name")}</TH>

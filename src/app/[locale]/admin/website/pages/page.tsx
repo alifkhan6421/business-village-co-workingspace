@@ -21,7 +21,7 @@ export default async function PagesList({ params, searchParams }: { params: Prom
   return (
     <>
       <AdminPageHeader title={t("pages.title")} subtitle={t("website.pagesDesc")} back={{ href: `/${locale}/admin/website`, label: t("nav.website") }} />
-      <Table>
+      <Table stack>
         <THead>
           <TR>
             <TH>{t("pages.pageTitle")}</TH>

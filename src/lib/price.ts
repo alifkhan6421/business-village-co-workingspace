@@ -8,3 +8,9 @@ export function formatPrice(amount: number, locale: Locale) {
     maximumFractionDigits: 2,
   }).format(amount);
 }
+
+/** Estimated price for a booking of `hours`: hourly rate capped at the day rate, or the day rate alone. */
+export function estimatePrice(hours: number, hourly: number | null, daily: number | null) {
+  if (hourly !== null) return daily !== null ? Math.min(hourly * hours, daily) : hourly * hours;
+  return daily;
+}
