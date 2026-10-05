@@ -15,7 +15,7 @@ import { createClient } from "@/lib/supabase/client";
 import { createGuestBooking, createMemberBooking } from "@/lib/booking/actions";
 import { berlinDate, berlinTime, berlinToUtc, todayBerlin } from "@/lib/time";
 import { localizeHref } from "@/lib/href";
-import { formatPrice } from "@/lib/price";
+import { estimatePrice, formatPrice } from "@/lib/price";
 import type { CalendarSettings } from "@/components/calendar/base-calendar";
 import type { Locale } from "@/i18n/routing";
 import { BookingSteps } from "./booking-steps";
@@ -69,6 +69,7 @@ export function BookingWidget({ resource, settings, user, initial, returnPath }:
   const errText = useErrorText();
   const fieldErr = useFieldErrorText();
   const topRef = useRef<HTMLDivElement>(null);
+  const panelRef = useRef<HTMLElement>(null);
 
   const times = useMemo(() => timeOptions(settings.dayStart, settings.dayEnd, settings.slotMinutes), [settings]);
   const [date, setDate] = useState(initial?.date ?? "");
@@ -89,13 +90,7 @@ export function BookingWidget({ resource, settings, user, initial, returnPath }:
   const selection = startDate && endDate && endDate > startDate ? { start: startDate, end: endDate } : null;
   const hours = selection ? (selection.end.getTime() - selection.start.getTime()) / 3600000 : 0;
 
-  const price = (() => {
-    if (!selection) return null;
-    const hourly = resource.priceHourly ?? null;
-    const daily = resource.priceDaily ?? null;
-    if (hourly !== null) return daily !== null ? Math.min(hourly * hours, daily) : hourly * hours;
-    return daily;
-  })();
+  const price = selection ? estimatePrice(hours, resource.priceHourly ?? null, resource.priceDaily ?? null) : null;
 
   const fetchEvents = useCallback(
     async (from: Date, to: Date): Promise<EventInput[]> => {
@@ -130,6 +125,8 @@ export function BookingWidget({ resource, settings, user, initial, returnPath }:
     const endTime = berlinTime(e);
     setEnd(endTime === "00:00" ? "24:00" : endTime);
     setError(null);
+    // On phones the time panel sits above the calendar: bring it back so "Continue" is in view.
+    if (window.matchMedia("(max-width: 1023px)").matches) panelRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
   const go = (next: Step) => {
@@ -259,7 +256,7 @@ export function BookingWidget({ resource, settings, user, initial, returnPath }:
             </ul>
           </div>
 
-          <aside className="h-fit space-y-5 rounded-2xl border bg-card p-5 shadow-md lg:sticky lg:top-24" data-testid="booking-panel">
+          <aside ref={panelRef} className="order-first scroll-mt-24 h-fit space-y-5 rounded-2xl border bg-card p-5 shadow-md lg:order-none lg:sticky lg:top-24" data-testid="booking-panel">
             <div>
               <h3 className="font-semibold">{t("selectTimeTitle")}</h3>
               <p className="mt-1 text-sm text-muted-foreground">{t("selectTimeHint")}</p>

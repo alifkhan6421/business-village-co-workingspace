@@ -174,8 +174,8 @@
     },
     "inquiry": {
       "new": "Neu",
-      "in_progress": "In Bearbeitung",
-      "resolved": "Erledigt"
+      "in_progress": "Gelesen",
+      "resolved": "Beantwortet"
     },
     "email": {
       "pending": "Ausstehend",
@@ -337,7 +337,7 @@
     "deskNumber": "Platznummer",
     "description": "Beschreibung",
     "availabilityCalendar": "Verfügbarkeit & Buchung",
-    "calendarHint": "Wählen Sie im Kalender einen freien Zeitraum aus, um zu buchen.",
+    "calendarHint": "Wählen Sie Datum, Uhrzeit und Personenzahl und buchen Sie in wenigen Schritten.",
     "backToList": "Zurück zur Übersicht",
     "showAll": "Alle anzeigen",
     "imageOf": "Bild {index} von {total}",
@@ -466,7 +466,7 @@
     "confirmedTitle": "Ihre Buchung ist bestätigt.",
     "backToHome": "Zur Startseite",
     "selectTimeTitle": "Datum und Uhrzeit wählen",
-    "selectTimeHint": "Ziehen Sie im Kalender über freie Zeiten oder wählen Sie sie unten aus.",
+    "selectTimeHint": "Wählen Sie Datum und Uhrzeit hier oder ziehen Sie im Kalender über freie Zeiten.",
     "summary": "Zusammenfassung",
     "hoursShort": "{hours} Std."
   },
@@ -551,7 +551,7 @@
       "users": "Benutzer",
       "guests": "Gäste",
       "announcements": "Ankündigungen",
-      "inquiries": "Anfragen",
+      "inquiries": "Nachrichten",
       "website": "Website",
       "media": "Medien",
       "emailLogs": "E-Mail-Protokoll",
@@ -563,7 +563,9 @@
       "resources": "Ressourcen",
       "people": "Personen",
       "content": "Inhalte",
-      "system": "System"
+      "system": "System",
+      "collapse": "Seitenleiste einklappen",
+      "expand": "Seitenleiste ausklappen"
     },
     "dashboard": {
       "title": "Übersicht",
@@ -574,17 +576,28 @@
       "availableSpaces": "Jetzt frei",
       "workspaceUtilization": "Auslastung Arbeitsplätze (7 Tage)",
       "roomUtilization": "Auslastung Räume (7 Tage)",
-      "newInquiries": "Neue Anfragen",
+      "newInquiries": "Neue Nachrichten",
       "todayList": "Buchungen heute",
       "upcomingList": "Nächste Buchungen",
       "recentActivity": "Letzte Aktivitäten",
-      "inquiriesList": "Neue Anfragen",
+      "inquiriesList": "Neue Nachrichten",
       "noToday": "Heute gibt es keine Buchungen.",
       "noUpcoming": "Keine bevorstehenden Buchungen.",
       "noActivity": "Noch keine Aktivitäten.",
-      "noInquiries": "Keine neuen Anfragen.",
+      "noInquiries": "Keine neuen Nachrichten.",
       "ofSpaces": "von {total}",
-      "utilization": "Auslastung (letzte 7 Tage)"
+      "utilization": "Auslastung nach Bereich",
+      "upcoming": "Bevorstehend",
+      "next7Days": "nächste 7 Tage",
+      "activeCustomers": "Aktive Kunden",
+      "last30Days": "letzte 30 Tage",
+      "occupancy": "Auslastung",
+      "last7Days": "letzte 7 Tage",
+      "revenue": "Umsatz",
+      "revenueSub": "30 Tage, geschätzt",
+      "noPrices": "Keine Preise hinterlegt",
+      "recentBookings": "Neueste Buchungen",
+      "viewAll": "Alle ansehen"
     },
     "common": {
       "new": "Neu",
@@ -632,7 +645,8 @@
       "deleteConfirm": "„{name}“ wirklich löschen?",
       "unsavedHint": "Änderungen werden erst mit „Speichern“ übernommen.",
       "missingTranslation": "Englische Übersetzung fehlt",
-      "missingGerman": "Deutsche Fassung fehlt"
+      "missingGerman": "Deutsche Fassung fehlt",
+      "open": "Öffnen"
     },
     "bookings": {
       "title": "Buchungen",
@@ -694,7 +708,11 @@
       "upcoming": "Aktuelle & kommende",
       "past": "Vergangene",
       "guestLinkHint": "Gäste verwalten ihre Buchung über einen persönlichen Link. Bei einer Terminänderung mit E-Mail-Benachrichtigung wird ein neuer Link verschickt, der alte wird ungültig.",
-      "messagesHint": "Nachrichten werden per E-Mail mit der Buchungsnummer im Betreff verschickt. Antworten erscheinen hier, sobald der E-Mail-Empfang eingerichtet ist."
+      "messagesHint": "Nachrichten werden per E-Mail mit der Buchungsnummer im Betreff verschickt. Antworten erscheinen hier, sobald der E-Mail-Empfang eingerichtet ist.",
+      "created": "Erstellt",
+      "customer": "Kunde",
+      "email": "E-Mail",
+      "phone": "Telefon"
     },
     "calendar": {
       "title": "Kalender",
@@ -710,7 +728,11 @@
       "blocks": "Sperren anzeigen",
       "newBookingHint": "Für eine neue Buchung zuerst eine einzelne Ressource auswählen.",
       "selectHint": "Zeitraum im Kalender markieren, um {name} zu buchen.",
-      "allStatuses": "Alle Status"
+      "allStatuses": "Alle Status",
+      "start": "Beginn",
+      "end": "Ende",
+      "openBooking": "Buchung öffnen",
+      "legend": "Legende"
     },
     "resources": {
       "workspacesTitle": "Arbeitsplätze",
@@ -740,7 +762,21 @@
       "deleteHasBookings": "Für diese Ressource existieren Buchungen. Setzen Sie den Status auf „Deaktiviert“, statt sie zu löschen.",
       "created": "Angelegt. Jetzt Bilder und Ausstattung ergänzen.",
       "noAmenities": "Noch keine Ausstattung angelegt.",
-      "publicPage": "Öffentliche Seite"
+      "publicPage": "Öffentliche Seite",
+      "pricing": "Preise",
+      "priceHourly": "Preis pro Stunde",
+      "priceDaily": "Preis pro Tag",
+      "priceHint": "Leer lassen, wenn kein Preis angezeigt werden soll. Der Stundenpreis wird beim Tagespreis gedeckelt.",
+      "noPrice": "Kein Preis",
+      "moreActions": "Weitere Aktionen für {name}",
+      "duplicate": "Duplizieren",
+      "duplicated": "Kopie angelegt. Sie ist noch nicht öffentlich sichtbar.",
+      "copySuffix": "Kopie",
+      "enable": "Aktivieren",
+      "disable": "Deaktivieren",
+      "enabled": "Wieder buchbar.",
+      "disabledToast": "Deaktiviert. Nicht mehr buchbar.",
+      "deleteHint": "Nur möglich, wenn es keine Buchungen gibt. Sonst bitte deaktivieren."
     },
     "blocks": {
       "title": "Sperrzeiten",
@@ -874,18 +910,18 @@
       "timeHint": "Zeiten in deutscher Zeit (Europe/Berlin)."
     },
     "inquiries": {
-      "title": "Anfragen",
+      "title": "Nachrichten",
       "subtitle": "Nachrichten aus dem Kontaktformular.",
       "message": "Nachricht",
       "notes": "Interne Notizen",
-      "markInProgress": "In Bearbeitung",
-      "markResolved": "Erledigt",
+      "markInProgress": "Als gelesen markieren",
+      "markResolved": "Als beantwortet markieren",
       "reopen": "Wieder öffnen",
-      "saved": "Anfrage aktualisiert.",
+      "saved": "Nachricht aktualisiert.",
       "replyByEmail": "Per E-Mail antworten",
       "received": "Eingegangen",
       "searchPlaceholder": "Name, E-Mail oder Nachricht …",
-      "detailTitle": "Anfrage von {name}"
+      "detailTitle": "Nachricht von {name}"
     },
     "emailLogs": {
       "title": "E-Mail-Protokoll",

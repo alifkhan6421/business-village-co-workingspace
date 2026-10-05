@@ -21,12 +21,15 @@ export function BookingSteps({ current, labels, ariaLabel }: { current: number; 
               >
                 {done ? <Check className="h-3.5 w-3.5" strokeWidth={3} /> : i + 1}
               </span>
-              <span className={cn("text-sm font-medium", active ? "shrink-0 text-foreground" : "truncate text-muted-foreground", !active && "hidden sm:inline")}>{label}</span>
+              <span className={cn("hidden text-sm font-medium sm:inline", active ? "shrink-0 text-foreground" : "truncate text-muted-foreground")}>{label}</span>
               {i < labels.length - 1 ? <span className={cn("h-px min-w-3 flex-1", done ? "bg-primary" : "bg-border")} aria-hidden="true" /> : null}
             </li>
           );
         })}
       </ol>
+      <p className="mt-2.5 text-sm font-semibold sm:hidden">
+        {current + 1}/{labels.length} · {labels[current]}
+      </p>
     </nav>
   );
 }

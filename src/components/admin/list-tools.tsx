@@ -19,16 +19,16 @@ export async function ListFilters({
 }) {
   const t = await getTranslations("common");
   return (
-    <form method="get" className="mb-4 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center" role="search">
+    <form method="get" className="mb-5 grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center" role="search">
       {Object.entries(hidden).map(([k, v]) => (
         <input key={k} type="hidden" name={k} value={v} />
       ))}
-      <div className="relative min-w-0 flex-1 sm:min-w-[16rem]">
+      <div className="relative col-span-2 min-w-0 flex-1 sm:min-w-[16rem]">
         <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <Input name="q" defaultValue={q} placeholder={placeholder ?? t("searchPlaceholder")} className="pl-9" aria-label={t("search")} />
       </div>
       {filters.map((f) => (
-        <NativeSelect key={f.name} name={f.name} defaultValue={f.value} aria-label={f.label} className="sm:w-48">
+        <NativeSelect key={f.name} name={f.name} defaultValue={f.value} aria-label={f.label} className="sm:w-48 [&:last-of-type:nth-of-type(odd)]:col-span-2">
           {f.options.map((o) => (
             <option key={o.value} value={o.value}>
               {o.label}
@@ -36,7 +36,7 @@ export async function ListFilters({
           ))}
         </NativeSelect>
       ))}
-      <Button type="submit" variant="secondary">
+      <Button type="submit" variant="secondary" className="col-span-2 sm:col-auto">
         {t("filter")}
       </Button>
     </form>

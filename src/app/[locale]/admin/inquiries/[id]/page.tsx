@@ -16,6 +16,11 @@ export default async function InquiryDetail({ params }: { params: Promise<{ loca
   const supabase = await createClient();
   const { data: i } = await supabase.from("contact_requests").select("*").eq("id", id).maybeSingle();
   if (!i) notFound();
+  // Opening a new message marks it as read.
+  if (i.status === "new") {
+    const { error } = await supabase.from("contact_requests").update({ status: "in_progress" }).eq("id", id);
+    if (!error) i.status = "in_progress";
+  }
   const [t, f] = await Promise.all([getTranslations({ locale, namespace: "admin" }), getFormatter({ locale })]);
   const replySubject = encodeURIComponent(locale === "de" ? "Ihre Anfrage bei Business Village" : "Your inquiry at Business Village");
   return (

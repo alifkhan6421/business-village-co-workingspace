@@ -174,8 +174,8 @@
     },
     "inquiry": {
       "new": "New",
-      "in_progress": "In progress",
-      "resolved": "Resolved"
+      "in_progress": "Read",
+      "resolved": "Replied"
     },
     "email": {
       "pending": "Pending",
@@ -337,7 +337,7 @@
     "deskNumber": "Desk number",
     "description": "Description",
     "availabilityCalendar": "Availability & booking",
-    "calendarHint": "Select a free time range in the calendar to book.",
+    "calendarHint": "Choose a date, time and group size, then book in a few steps.",
     "backToList": "Back to overview",
     "showAll": "Show all",
     "imageOf": "Image {index} of {total}",
@@ -466,7 +466,7 @@
     "confirmedTitle": "Your booking is confirmed.",
     "backToHome": "Back to homepage",
     "selectTimeTitle": "Choose a date and time",
-    "selectTimeHint": "Drag across free times in the calendar, or pick them below.",
+    "selectTimeHint": "Pick a date and time here, or drag across free times in the calendar.",
     "summary": "Summary",
     "hoursShort": "{hours} h"
   },
@@ -551,7 +551,7 @@
       "users": "Users",
       "guests": "Guests",
       "announcements": "Announcements",
-      "inquiries": "Inquiries",
+      "inquiries": "Messages",
       "website": "Website",
       "media": "Media",
       "emailLogs": "Email Logs",
@@ -563,7 +563,9 @@
       "resources": "Resources",
       "people": "People",
       "content": "Content",
-      "system": "System"
+      "system": "System",
+      "collapse": "Collapse sidebar",
+      "expand": "Expand sidebar"
     },
     "dashboard": {
       "title": "Overview",
@@ -574,17 +576,28 @@
       "availableSpaces": "Available now",
       "workspaceUtilization": "Workspace utilization (7 days)",
       "roomUtilization": "Room utilization (7 days)",
-      "newInquiries": "New inquiries",
+      "newInquiries": "New messages",
       "todayList": "Today's bookings",
       "upcomingList": "Upcoming bookings",
       "recentActivity": "Recent activity",
-      "inquiriesList": "New inquiries",
+      "inquiriesList": "New messages",
       "noToday": "There are no bookings today.",
       "noUpcoming": "No upcoming bookings.",
       "noActivity": "No activity yet.",
-      "noInquiries": "No new inquiries.",
+      "noInquiries": "No new messages.",
       "ofSpaces": "of {total}",
-      "utilization": "Utilization (last 7 days)"
+      "utilization": "Occupancy by area",
+      "upcoming": "Upcoming",
+      "next7Days": "next 7 days",
+      "activeCustomers": "Active customers",
+      "last30Days": "last 30 days",
+      "occupancy": "Occupancy",
+      "last7Days": "last 7 days",
+      "revenue": "Revenue",
+      "revenueSub": "30 days, estimated",
+      "noPrices": "No prices set",
+      "recentBookings": "Latest bookings",
+      "viewAll": "View all"
     },
     "common": {
       "new": "New",
@@ -632,7 +645,8 @@
       "deleteConfirm": "Really delete \"{name}\"?",
       "unsavedHint": "Changes are applied when you click \"Save\".",
       "missingTranslation": "English translation missing",
-      "missingGerman": "German version missing"
+      "missingGerman": "German version missing",
+      "open": "Open"
     },
     "bookings": {
       "title": "Bookings",
@@ -694,7 +708,11 @@
       "upcoming": "Current & upcoming",
       "past": "Past",
       "guestLinkHint": "Guests manage their booking via a personal link. When the schedule is changed with email notification, a new link is sent and the old one stops working.",
-      "messagesHint": "Messages are emailed with the booking reference in the subject. Replies appear here once inbound email is set up."
+      "messagesHint": "Messages are emailed with the booking reference in the subject. Replies appear here once inbound email is set up.",
+      "created": "Created",
+      "customer": "Customer",
+      "email": "Email",
+      "phone": "Phone"
     },
     "calendar": {
       "title": "Calendar",
@@ -710,7 +728,11 @@
       "blocks": "Show blocks",
       "newBookingHint": "Select a single resource first to create a booking.",
       "selectHint": "Select a time range in the calendar to book {name}.",
-      "allStatuses": "All statuses"
+      "allStatuses": "All statuses",
+      "start": "Start",
+      "end": "End",
+      "openBooking": "Open booking",
+      "legend": "Legend"
     },
     "resources": {
       "workspacesTitle": "Workspaces",
@@ -740,7 +762,21 @@
       "deleteHasBookings": "Bookings exist for this resource. Set its status to \"Disabled\" instead of deleting it.",
       "created": "Created. Now add images and amenities.",
       "noAmenities": "No amenities created yet.",
-      "publicPage": "Public page"
+      "publicPage": "Public page",
+      "pricing": "Pricing",
+      "priceHourly": "Price per hour",
+      "priceDaily": "Price per day",
+      "priceHint": "Leave empty to show no price. The hourly price is capped at the day price.",
+      "noPrice": "No price",
+      "moreActions": "More actions for {name}",
+      "duplicate": "Duplicate",
+      "duplicated": "Copy created. It is not public yet.",
+      "copySuffix": "Copy",
+      "enable": "Enable",
+      "disable": "Disable",
+      "enabled": "Bookable again.",
+      "disabledToast": "Disabled. No longer bookable.",
+      "deleteHint": "Only possible when there are no bookings. Otherwise disable it."
     },
     "blocks": {
       "title": "Blocked periods",
@@ -874,18 +910,18 @@
       "timeHint": "Times in German time (Europe/Berlin)."
     },
     "inquiries": {
-      "title": "Inquiries",
+      "title": "Messages",
       "subtitle": "Messages from the contact form.",
       "message": "Message",
       "notes": "Internal notes",
-      "markInProgress": "In progress",
-      "markResolved": "Resolved",
+      "markInProgress": "Mark as read",
+      "markResolved": "Mark as replied",
       "reopen": "Reopen",
-      "saved": "Inquiry updated.",
+      "saved": "Message updated.",
       "replyByEmail": "Reply by email",
       "received": "Received",
       "searchPlaceholder": "Name, email or message …",
-      "detailTitle": "Inquiry from {name}"
+      "detailTitle": "Message from {name}"
     },
     "emailLogs": {
       "title": "Email Logs",

@@ -33,7 +33,7 @@ export default async function InquiriesPage({ params, searchParams }: { params: 
       {(data ?? []).length === 0 ? (
         <EmptyState title={t("common.noResults")} />
       ) : (
-        <Table>
+        <Table stack>
           <THead>
             <TR>
               <TH>{t("common.name")}</TH>

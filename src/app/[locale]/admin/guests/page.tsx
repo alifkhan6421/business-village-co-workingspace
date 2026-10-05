@@ -27,7 +27,7 @@ export default async function GuestsPage({ params, searchParams }: { params: Pro
       {(data ?? []).length === 0 ? (
         <EmptyState title={t("common.noResults")} />
       ) : (
-        <Table>
+        <Table stack>
           <THead>
             <TR>
               <TH>{t("common.name")}</TH>

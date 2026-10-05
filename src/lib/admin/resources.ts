@@ -6,6 +6,23 @@ import { checkbox, intSchema, optString, reqString, slugSchema } from "@/lib/val
 import { sanitizeRichText, stripHtml } from "@/lib/sanitize";
 import { berlinToUtc } from "@/lib/time";
 
+const priceSchema = z
+  .string()
+  .optional()
+  .transform((v, ctx) => {
+    const s = (v ?? "").trim().replace(",", ".");
+    if (!s) return null;
+    const n = Number(s);
+    if (!Number.isFinite(n) || n < 0 || n > 100000) {
+      ctx.addIssue({ code: "custom", message: "invalidNumber" });
+      return z.NEVER;
+    }
+    return Math.round(n * 100) / 100;
+  });
+
+/** PostgREST "column not found": the price migration has not been applied to this database yet. */
+const missingColumn = (e: { code?: string } | null) => e?.code === "PGRST204" || e?.code === "42703";
+
 export type ResourceKind = "workspace" | "room";
 const TABLE = { workspace: "workspaces", room: "rooms" } as const;
 
@@ -23,6 +40,8 @@ const baseSchema = z.object({
   short_description_en: optString(400),
   full_description_de: z.string().max(20000, "tooLong").optional(),
   full_description_en: z.string().max(20000, "tooLong").optional(),
+  price_hourly: priceSchema,
+  price_daily: priceSchema,
 });
 const workspaceSchema = baseSchema.extend({ desk_number: optString(20), zone: optString(40) });
 
@@ -47,15 +66,20 @@ export async function saveResource(kind: ResourceKind, _: unknown, fd: FormData)
       full_description_en: sanitizeRichText(v.full_description_en),
       ...(kind === "workspace" ? { desk_number: v.desk_number, zone: v.zone ?? "" } : {}),
     };
-    let id = v.id;
-    if (id) {
-      const { error } = await ctx.supabase.from(TABLE[kind]).update(row as never).eq("id", id);
-      if (error) return error.code === "23505" ? fail("validation", { slug: "slugTaken" }) : fail(dbErrorKey(error, ""));
-    } else {
-      const { data, error } = await ctx.supabase.from(TABLE[kind]).insert(row as never).select("id").single();
-      if (error || !data) return error?.code === "23505" ? fail("validation", { slug: "slugTaken" }) : fail(dbErrorKey(error, ""));
-      id = (data as { id: string }).id;
-    }
+    const withPrices = { ...row, price_hourly: v.price_hourly, price_daily: v.price_daily };
+    const write = async (values: typeof row) => {
+      if (v.id) {
+        const { error } = await ctx.supabase.from(TABLE[kind]).update(values as never).eq("id", v.id);
+        return { id: v.id, error };
+      }
+      const { data, error } = await ctx.supabase.from(TABLE[kind]).insert(values as never).select("id").single();
+      return { id: (data as { id: string } | null)?.id, error };
+    };
+    let res = await write(withPrices);
+    // Without the price columns, save everything else rather than failing the whole form.
+    if (missingColumn(res.error)) res = await write(row);
+    if (res.error || !res.id) return res.error?.code === "23505" ? fail("validation", { slug: "slugTaken" }) : fail(dbErrorKey(res.error, ""));
+    const id = res.id;
     const amenityIds = fd.getAll("amenity_ids").filter((x): x is string => typeof x === "string" && x.length > 0);
     if (fd.has("amenities_present")) {
       const { error } = await ctx.supabase.rpc("admin_set_amenities", { p_type: kind, p_resource_id: id!, p_amenity_ids: amenityIds });
@@ -63,6 +87,49 @@ export async function saveResource(kind: ResourceKind, _: unknown, fd: FormData)
     }
     revalidateSite();
     return { ok: true, data: { id: id! } };
+  });
+}
+
+/** Copies a space (details, prices, amenities, photos) as a hidden draft named "… (Kopie)". */
+export async function duplicateResource(kind: ResourceKind, id: string, copyLabel: string): Promise<ActionResult<{ id: string }>> {
+  return adminAction(async (ctx) => {
+    const table = TABLE[kind];
+    const { data: src, error } = await ctx.supabase.from(table).select("*").eq("id", id).maybeSingle();
+    if (error || !src) return fail("notFound");
+    const { id: _id, created_at: _c, updated_at: _u, ...rest } = src as Record<string, unknown>;
+    void _id; void _c; void _u;
+    const baseSlug = `${String(rest.slug)}-copy`.slice(0, 70);
+    let newId: string | undefined;
+    for (let n = 1; n <= 20 && !newId; n++) {
+      const slug = n === 1 ? baseSlug : `${baseSlug}-${n}`;
+      const name = `${String(rest.name)} (${copyLabel})`.slice(0, 80);
+      const { data, error: e } = await ctx.supabase.from(table).insert({ ...rest, slug, name, public_visible: false, featured: false } as never).select("id").single();
+      if (!e && data) newId = (data as { id: string }).id;
+      else if (e?.code !== "23505") return fail(dbErrorKey(e, ""));
+    }
+    if (!newId) return fail("unknown");
+    const relTable = kind === "workspace" ? "workspace_amenities" : "room_amenities";
+    const col = kind === "workspace" ? "workspace_id" : "room_id";
+    const { data: am } = await ctx.supabase.from(relTable).select("amenity_id").eq(col as never, id);
+    if (am?.length) await ctx.supabase.rpc("admin_set_amenities", { p_type: kind, p_resource_id: newId, p_amenity_ids: am.map((a) => a.amenity_id) });
+    const imgTable = kind === "workspace" ? "workspace_images" : "room_images";
+    const { data: imgs } = await ctx.supabase.from(imgTable).select("media_id, is_cover, display_order").eq(col as never, id).order("display_order");
+    if (imgs?.length) {
+      const cover = imgs.find((i) => i.is_cover)?.media_id ?? null;
+      await setGallery(kind, newId, imgs.map((i) => i.media_id), cover);
+    }
+    revalidateSite();
+    return { ok: true, data: { id: newId } };
+  });
+}
+
+/** Quick enable/disable from the space list. */
+export async function setResourceStatus(kind: ResourceKind, id: string, status: "available" | "disabled"): Promise<ActionResult> {
+  return adminAction(async (ctx) => {
+    const { error } = await ctx.supabase.from(TABLE[kind]).update({ status } as never).eq("id", id);
+    if (error) return fail(dbErrorKey(error, ""));
+    revalidateSite();
+    return { ok: true };
   });
 }
 

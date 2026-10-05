@@ -1,10 +1,14 @@
 import * as React from "react";
 import { cn } from "@/lib/utils";
 
-export function Table({ className, ...props }: React.TableHTMLAttributes<HTMLTableElement>) {
+/** Phones show each row as a compact card when `stack` is set, instead of a sideways-scrolling table. */
+const STACK =
+  "max-md:[&_thead]:hidden max-md:[&_tbody]:block max-md:[&_tr]:flex max-md:[&_tr]:flex-wrap max-md:[&_tr]:items-center max-md:[&_tr]:gap-x-3 max-md:[&_tr]:gap-y-1 max-md:[&_tr]:px-4 max-md:[&_tr]:py-3 max-md:[&_td:not(.hidden)]:block max-md:[&_td]:p-0 max-md:[&_td:first-child]:basis-full";
+
+export function Table({ className, wrapperClassName, stack, ...props }: React.TableHTMLAttributes<HTMLTableElement> & { wrapperClassName?: string; stack?: boolean }) {
   return (
-    <div className="relative w-full overflow-x-auto rounded-2xl border bg-card shadow-xs">
-      <table className={cn("w-full caption-bottom text-sm", className)} {...props} />
+    <div className={cn("relative w-full overflow-x-auto rounded-2xl border bg-card shadow-xs", wrapperClassName)}>
+      <table className={cn("w-full caption-bottom text-sm", stack && STACK, className)} {...props} />
     </div>
   );
 }

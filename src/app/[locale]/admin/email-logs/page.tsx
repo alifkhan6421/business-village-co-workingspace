@@ -40,7 +40,7 @@ export default async function EmailLogsPage({ params, searchParams }: { params: 
       {(data ?? []).length === 0 ? (
         <EmptyState title={t("common.noResults")} />
       ) : (
-        <Table>
+        <Table stack>
           <THead>
             <TR>
               <TH>{t("emailLogs.subject")}</TH>

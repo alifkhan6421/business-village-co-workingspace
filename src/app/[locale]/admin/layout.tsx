@@ -3,6 +3,8 @@ import { setRequestLocale } from "next-intl/server";
 import { requireAdminPage } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { AdminShell } from "@/components/admin/admin-shell";
+import { Brand } from "@/components/site/brand";
+import { getSiteSettings } from "@/lib/cms";
 import { localizeHref } from "@/lib/href";
 import type { Locale } from "@/i18n/routing";
 
@@ -14,13 +16,15 @@ export default async function AdminLayout({ children, params }: { children: Reac
   setRequestLocale(locale);
   const { profile } = await requireAdminPage(locale);
   const supabase = await createClient();
-  const { count: newInquiries } = await supabase
-    .from("contact_requests")
-    .select("id", { count: "exact", head: true })
-    .eq("status", "new");
+  const [{ count: newInquiries }, settings] = await Promise.all([
+    supabase.from("contact_requests").select("id", { count: "exact", head: true }).eq("status", "new"),
+    getSiteSettings(locale),
+  ]);
   return (
     <AdminShell
       userName={profile.full_name || profile.email}
+      userEmail={profile.email}
+      brand={<Brand logo={settings.logo} name={settings.company_name} />}
       badges={{ inquiries: newInquiries ?? 0 }}
       siteHref={localizeHref("/", locale)}
     >

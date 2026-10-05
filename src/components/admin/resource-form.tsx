@@ -30,6 +30,8 @@ export type ResourceFormValues = {
   short_description_en: string;
   full_description_de: string;
   full_description_en: string;
+  price_hourly?: number | string | null;
+  price_daily?: number | string | null;
 };
 
 function slugify(v: string) {
@@ -151,6 +153,26 @@ export function ResourceForm({
 
       <Card>
         <CardHeader>
+          <CardTitle className="text-base">{t("pricing")}</CardTitle>
+        </CardHeader>
+        <CardContent className="grid gap-4 sm:grid-cols-2">
+          <Field label={t("priceHourly")} htmlFor="price_hourly" error={fe("price_hourly")} hint={t("priceHint")}>
+            <div className="relative">
+              <Input id="price_hourly" name="price_hourly" type="number" inputMode="decimal" min={0} step="0.01" defaultValue={v?.price_hourly ?? ""} className="pr-9" />
+              <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">€</span>
+            </div>
+          </Field>
+          <Field label={t("priceDaily")} htmlFor="price_daily" error={fe("price_daily")}>
+            <div className="relative">
+              <Input id="price_daily" name="price_daily" type="number" inputMode="decimal" min={0} step="0.01" defaultValue={v?.price_daily ?? ""} className="pr-9" />
+              <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">€</span>
+            </div>
+          </Field>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
           <CardTitle className="text-base">{t("descriptions")}</CardTitle>
         </CardHeader>
         <CardContent>
@@ -190,7 +212,7 @@ export function ResourceForm({
           ) : (
             <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
               {relevant.map((a) => (
-                <label key={a.id} className="flex min-w-0 items-center gap-2 rounded-md border px-3 py-2 text-sm hover:bg-muted/50">
+                <label key={a.id} className="flex min-w-0 items-center gap-2 rounded-lg border px-3 py-2.5 text-sm transition-colors hover:bg-surface has-[:checked]:border-primary/40 has-[:checked]:bg-primary/5">
                   <input
                     type="checkbox"
                     name="amenity_ids"
@@ -208,7 +230,7 @@ export function ResourceForm({
         </CardContent>
       </Card>
 
-      <div className="sticky bottom-0 -mx-3 flex justify-end border-t bg-background/95 px-3 py-3 backdrop-blur sm:mx-0 sm:rounded-lg sm:border">
+      <div className="sticky bottom-0 z-10 -mx-4 flex justify-end border-t bg-background/95 px-4 py-3 backdrop-blur sm:mx-0 sm:rounded-2xl sm:border sm:shadow-sm">
         <SubmitButton pending={pending}>{v ? tc("saveChanges") : tCommon("create")}</SubmitButton>
       </div>
     </form>
