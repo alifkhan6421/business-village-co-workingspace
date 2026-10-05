@@ -142,6 +142,13 @@ export function BaseCalendar(props: BaseCalendarProps) {
         }}
         eventSources={eventSources}
         dayMaxEvents={3}
+        viewDidMount={(arg) => {
+          // FullCalendar's arrow icons are role="img" without a name; the buttons themselves carry the label.
+          const root = arg.el.closest(".fc");
+          root?.querySelectorAll(".fc-icon").forEach((el) => el.setAttribute("aria-hidden", "true"));
+          // Let keyboard users scroll the time grid.
+          root?.querySelectorAll(".fc-scroller-liquid-absolute").forEach((el) => el.setAttribute("tabindex", "0"));
+        }}
       />
     </div>
   );

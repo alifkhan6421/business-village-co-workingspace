@@ -135,12 +135,12 @@ export default async function AccountPage({ params, searchParams }: Props) {
               <a href={localizeHref("/account/profile", locale)} className="text-sm font-medium text-primary hover:underline">{t("editProfile")}</a>
             </CardHeader>
             <CardContent>
-              <dl className="space-y-2.5 text-sm">
+              <div className="space-y-2.5 text-sm">
                 <div className="font-semibold">{profile.full_name}</div>
                 {profile.company ? <div className="text-muted-foreground">{profile.company}</div> : null}
                 <div className="flex items-center gap-2 text-muted-foreground"><Mail className="h-3.5 w-3.5" /> <span className="truncate">{profile.email}</span></div>
                 {profile.phone ? <div className="flex items-center gap-2 text-muted-foreground"><Phone className="h-3.5 w-3.5" /> {profile.phone}</div> : null}
-              </dl>
+              </div>
             </CardContent>
           </Card>
           <Card>

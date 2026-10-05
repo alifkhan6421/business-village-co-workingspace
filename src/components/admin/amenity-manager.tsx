@@ -156,7 +156,45 @@ export function AmenityManager({ rows, locale }: { rows: AmenityRow[]; locale: "
           <Plus /> {t("new")}
         </Button>
       </div>
-      <Table>
+      <ul className="space-y-3 md:hidden" data-testid="amenity-cards">
+        {sorted.map((a, i) => (
+          <li key={a.id} className="rounded-2xl border bg-card p-4 shadow-xs">
+            <div className="flex items-start gap-3">
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2">
+                  <Icon name={a.icon} className="h-4 w-4 shrink-0 text-primary" />
+                  <span className="font-medium">{locale === "en" && a.name_en ? a.name_en : a.name_de}</span>
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  {tt(a.amenity_type)} · {t("usageCount", { count: a.usage })}
+                </div>
+              </div>
+              <Switch
+                checked={a.active}
+                aria-label={a.active ? t("deactivate") : t("activate")}
+                onCheckedChange={(v: boolean) =>
+                  start(async () => {
+                    const r = await setAmenityActive(a.id, v);
+                    if (!r.ok) toast.error(errorText(r.error));
+                    router.refresh();
+                  })
+                }
+              />
+            </div>
+            <div className="mt-3 flex items-center justify-between gap-2 border-t pt-3">
+              <div className="flex">
+                <Button variant="ghost" size="icon" className="h-9 w-9" onClick={() => move(i, -1)} disabled={i === 0} aria-label={tcm("moveUp")}><ArrowUp /></Button>
+                <Button variant="ghost" size="icon" className="h-9 w-9" onClick={() => move(i, 1)} disabled={i === sorted.length - 1} aria-label={tcm("moveDown")}><ArrowDown /></Button>
+              </div>
+              <div className="flex gap-1">
+                <Button variant="outline" size="sm" onClick={() => setEditing(a)}><Pencil /> {tc("edit")}</Button>
+                <DeleteButton action={deleteAmenity.bind(null, a.id)} name={a.name_de} description={a.usage ? t("deleteInUse", { count: a.usage }) : t("deleteUnused")} />
+              </div>
+            </div>
+          </li>
+        ))}
+      </ul>
+      <Table wrapperClassName="hidden md:block">
         <THead>
           <TR>
             <TH className="w-24">{tc("order")}</TH>
