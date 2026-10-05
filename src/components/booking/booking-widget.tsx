@@ -1,9 +1,9 @@
 "use client";
-import { useCallback, useMemo, useState, useTransition } from "react";
+import { useCallback, useMemo, useRef, useState, useTransition } from "react";
 import dynamic from "next/dynamic";
 import { useLocale, useTranslations } from "next-intl";
 import { toast } from "sonner";
-import { CalendarCheck, Loader2, LogIn, UserPlus, UserRound } from "lucide-react";
+import { ArrowLeft, ArrowRight, CalendarDays, Clock, Loader2, LogIn, Pencil, Users } from "lucide-react";
 import type { EventInput } from "@fullcalendar/core";
 import { Button } from "@/components/ui/button";
 import { Input, NativeSelect, Textarea } from "@/components/ui/input";
@@ -15,21 +15,30 @@ import { createClient } from "@/lib/supabase/client";
 import { createGuestBooking, createMemberBooking } from "@/lib/booking/actions";
 import { berlinDate, berlinTime, berlinToUtc, todayBerlin } from "@/lib/time";
 import { localizeHref } from "@/lib/href";
+import { formatPrice } from "@/lib/price";
 import type { CalendarSettings } from "@/components/calendar/base-calendar";
 import type { Locale } from "@/i18n/routing";
+import { BookingSteps } from "./booking-steps";
 
 const BaseCalendar = dynamic(() => import("@/components/calendar/base-calendar").then((m) => m.BaseCalendar), {
   ssr: false,
-  loading: () => <Skeleton className="h-[520px] w-full" />,
+  loading: () => <Skeleton className="h-[520px] w-full rounded-2xl" />,
 });
 
 type Props = {
-  resource: { id: string; type: "workspace" | "room"; name: string; capacity: number };
+  resource: { id: string; type: "workspace" | "room"; name: string; capacity: number; priceHourly?: number | null; priceDaily?: number | null };
   settings: CalendarSettings;
   user: { name: string; email: string } | null;
   initial?: { date?: string; start?: string; end?: string };
   returnPath: string;
 };
+
+type Step = "time" | "details" | "review";
+type Guest = { firstName: string; lastName: string; email: string; phone: string; company: string; website: string };
+
+const BUSY = "#c2410c";
+const BLOCKED = "#94a3b8";
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function timeOptions(start: string, end: string, step: number) {
   const toMin = (s: string) => Number(s.slice(0, 2)) * 60 + Number(s.slice(3, 5));
@@ -48,13 +57,18 @@ function firstBookableDay(weekdays: number[]) {
   return berlinDate(d);
 }
 
-/** Calendar-based booking for guests and members (public resource pages). */
+/**
+ * Booking flow on public resource pages, for guests and members:
+ * Space → Date & time → Details → Confirm. Guests never need an account.
+ */
 export function BookingWidget({ resource, settings, user, initial, returnPath }: Props) {
   const t = useTranslations("booking");
   const tCal = useTranslations("calendar");
+  const tv = useTranslations("validation");
   const locale = useLocale() as Locale;
   const errText = useErrorText();
   const fieldErr = useFieldErrorText();
+  const topRef = useRef<HTMLDivElement>(null);
 
   const times = useMemo(() => timeOptions(settings.dayStart, settings.dayEnd, settings.slotMinutes), [settings]);
   const [date, setDate] = useState(initial?.date ?? "");
@@ -62,7 +76,8 @@ export function BookingWidget({ resource, settings, user, initial, returnPath }:
   const [end, setEnd] = useState(initial?.end ?? "");
   const [attendees, setAttendees] = useState(1);
   const [purpose, setPurpose] = useState("");
-  const [step, setStep] = useState<"details" | "guest">("details");
+  const [guest, setGuest] = useState<Guest>({ firstName: "", lastName: "", email: "", phone: "", company: "", website: "" });
+  const [step, setStep] = useState<Step>("time");
   const [refreshKey, setRefreshKey] = useState(0);
   const [loadError, setLoadError] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -72,6 +87,15 @@ export function BookingWidget({ resource, settings, user, initial, returnPath }:
   const startDate = date && start ? berlinToUtc(date, start) : null;
   const endDate = date && end ? berlinToUtc(date, end) : null;
   const selection = startDate && endDate && endDate > startDate ? { start: startDate, end: endDate } : null;
+  const hours = selection ? (selection.end.getTime() - selection.start.getTime()) / 3600000 : 0;
+
+  const price = (() => {
+    if (!selection) return null;
+    const hourly = resource.priceHourly ?? null;
+    const daily = resource.priceDaily ?? null;
+    if (hourly !== null) return daily !== null ? Math.min(hourly * hours, daily) : hourly * hours;
+    return daily;
+  })();
 
   const fetchEvents = useCallback(
     async (from: Date, to: Date): Promise<EventInput[]> => {
@@ -90,7 +114,7 @@ export function BookingWidget({ resource, settings, user, initial, returnPath }:
         end: s.end_at,
         title: s.kind === "blocked" ? tCal("blocked") : tCal("booked"),
         display: "block",
-        backgroundColor: s.kind === "blocked" ? "#9ca3af" : "#b45309",
+        backgroundColor: s.kind === "blocked" ? BLOCKED : BUSY,
         borderColor: "transparent",
         textColor: "#fff",
         classNames: [`bv-${s.kind}`],
@@ -106,6 +130,21 @@ export function BookingWidget({ resource, settings, user, initial, returnPath }:
     const endTime = berlinTime(e);
     setEnd(endTime === "00:00" ? "24:00" : endTime);
     setError(null);
+  };
+
+  const go = (next: Step) => {
+    setStep(next);
+    setError(null);
+    requestAnimationFrame(() => topRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }));
+  };
+
+  const validateGuest = () => {
+    const errs: Record<string, string> = {};
+    if (!guest.firstName.trim()) errs.firstName = "required";
+    if (!guest.lastName.trim()) errs.lastName = "required";
+    if (!EMAIL_RE.test(guest.email.trim())) errs.email = guest.email.trim() ? "invalidEmail" : "required";
+    setFieldErrors(errs);
+    return Object.keys(errs).length === 0;
   };
 
   const payload = () => ({
@@ -130,168 +169,282 @@ export function BookingWidget({ resource, settings, user, initial, returnPath }:
     }
     if (!res.ok) {
       setError(res.error);
-      setFieldErrors(res.fieldErrors ?? {});
+      const fe = res.fieldErrors ?? {};
+      setFieldErrors(fe);
       if (res.error === "booking.slot_unavailable" || res.error === "booking.resource_blocked") {
         toast.error(t("slotTaken"));
         setRefreshKey((k) => k + 1);
+        go("time");
+        setError(res.error);
+      } else if (["firstName", "lastName", "email", "phone", "company"].some((k) => fe[k])) {
+        go("details");
       }
     }
   };
 
-  const bookAsMember = () => {
+  const confirm = () => {
     setError(null);
-    startTransition(async () => handleResult(await createMemberBooking(payload())));
+    startTransition(async () => {
+      if (user) return handleResult(await createMemberBooking(payload()));
+      handleResult(await createGuestBooking({ ...payload(), ...guest }));
+    });
   };
 
-  const bookAsGuest = (fd: FormData) => {
-    setError(null);
-    startTransition(async () =>
-      handleResult(
-        await createGuestBooking({
-          ...payload(),
-          firstName: fd.get("firstName"),
-          lastName: fd.get("lastName"),
-          email: fd.get("email"),
-          phone: fd.get("phone"),
-          company: fd.get("company"),
-          website: fd.get("website"),
-        }),
-      ),
-    );
-  };
+  const loginUrl = `${localizeHref("/login", locale)}?next=${encodeURIComponent(`${returnPath}?booking=1${date ? `&date=${date}&start=${start}&end=${end}` : ""}#booking`)}`;
+  const setG = (k: keyof Guest) => (e: React.ChangeEvent<HTMLInputElement>) => setGuest((g) => ({ ...g, [k]: e.target.value }));
+  const stepIndex = step === "time" ? 1 : step === "details" ? 2 : 3;
+  const dateLabel = selection ? new Intl.DateTimeFormat(locale, { weekday: "long", day: "numeric", month: "long", year: "numeric", timeZone: "Europe/Berlin" }).format(selection.start) : "";
 
-  const hours = selection ? (selection.end.getTime() - selection.start.getTime()) / 3600000 : 0;
-  const loginUrl = `${localizeHref("/login", locale)}?next=${encodeURIComponent(`${returnPath}?booking=1${date ? `&date=${date}&start=${start}&end=${end}` : ""}`)}`;
-  const signupUrl = localizeHref("/signup", locale);
+  const summary = (
+    <div className="space-y-4" data-testid="booking-summary">
+      <div>
+        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t("summary")}</p>
+        <p className="mt-1 font-semibold">{resource.name}</p>
+      </div>
+      <ul className="space-y-2.5 text-sm">
+        <li className="flex items-start gap-2.5">
+          <CalendarDays className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+          <span>{selection ? dateLabel : <span className="text-muted-foreground">{t("noSelection")}</span>}</span>
+        </li>
+        {selection ? (
+          <li className="flex items-start gap-2.5">
+            <Clock className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+            <span className="tabular-nums">
+              {t("timeRange", { start, end })} <span className="text-muted-foreground">· {t("hoursShort", { hours: hours.toLocaleString(locale) })}</span>
+            </span>
+          </li>
+        ) : null}
+        <li className="flex items-start gap-2.5">
+          <Users className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+          <span>{attendees} · <span className="text-muted-foreground">{t("capacityHint", { count: resource.capacity })}</span></span>
+        </li>
+      </ul>
+      {price !== null ? (
+        <div className="flex items-baseline justify-between border-t pt-4">
+          <span className="text-sm text-muted-foreground">{t("estimatedPrice")}</span>
+          <span className="text-lg font-bold tabular-nums" data-testid="booking-price">{formatPrice(price, locale)}</span>
+        </div>
+      ) : null}
+    </div>
+  );
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[1fr_22rem]">
-      <div className="min-w-0 space-y-3">
-        {loadError ? <FormAlert>{t("loadError")}</FormAlert> : null}
-        <BaseCalendar
-          locale={locale}
-          settings={settings}
-          fetchEvents={fetchEvents}
-          onError={onLoadError}
-          selectable
-          onSelect={onSelect}
-          selection={selection}
-          refreshKey={refreshKey}
-          initialDate={initial?.date ?? firstBookableDay(settings.weekdays)}
-        />
-        <ul className="flex flex-wrap gap-4 text-xs text-muted-foreground">
-          <li className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-sm border bg-background" /> {t("legendAvailable")}</li>
-          <li className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-sm bg-[#b45309]" /> {t("legendBooked")}</li>
-          <li className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-sm bg-[#9ca3af]" /> {t("legendBlocked")}</li>
-          <li className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-sm bg-primary/30" /> {t("legendSelected")}</li>
-        </ul>
-      </div>
+    <div ref={topRef} className="scroll-mt-24 space-y-6">
+      <BookingSteps
+        current={stepIndex}
+        labels={[t("stepSpace"), t("stepTime"), t("stepDetails"), t("stepConfirm")]}
+        ariaLabel={t("progress")}
+      />
 
-      <aside className="h-fit space-y-4 rounded-xl border bg-card p-5 shadow-sm lg:sticky lg:top-24" data-testid="booking-panel">
-        <h3 className="flex items-center gap-2 font-semibold">
-          <CalendarCheck className="h-5 w-5 text-primary" /> {t("panelTitle")} · {resource.name}
-        </h3>
-        {!selection ? <p className="text-sm text-muted-foreground">{t("pickSlot")}</p> : null}
+      {step === "time" ? (
+        <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
+          <div className="min-w-0 space-y-3">
+            {loadError ? <FormAlert>{t("loadError")}</FormAlert> : null}
+            <BaseCalendar
+              locale={locale}
+              settings={settings}
+              fetchEvents={fetchEvents}
+              onError={onLoadError}
+              selectable
+              onSelect={onSelect}
+              selection={selection}
+              refreshKey={refreshKey}
+              initialDate={date || initial?.date || firstBookableDay(settings.weekdays)}
+            />
+            <ul className="flex flex-wrap gap-x-5 gap-y-2 text-xs text-muted-foreground">
+              <li className="flex items-center gap-1.5"><span className="h-3 w-3 rounded border bg-background" /> {t("legendAvailable")}</li>
+              <li className="flex items-center gap-1.5"><span className="h-3 w-3 rounded" style={{ background: BUSY }} /> {t("legendBooked")}</li>
+              <li className="flex items-center gap-1.5"><span className="h-3 w-3 rounded" style={{ background: BLOCKED }} /> {t("legendBlocked")}</li>
+              <li className="flex items-center gap-1.5"><span className="h-3 w-3 rounded bg-primary/30" /> {t("legendSelected")}</li>
+            </ul>
+          </div>
 
-        <div className="grid grid-cols-3 gap-2">
-          <Field label={t("date")} htmlFor="bk-date" className="col-span-3">
-            <Input id="bk-date" type="date" value={date} min={todayBerlin()} onChange={(e) => setDate(e.target.value)} />
-          </Field>
-          <Field label={t("start")} htmlFor="bk-start" className="col-span-3 sm:col-span-1 lg:col-span-3 xl:col-span-1">
-            <NativeSelect id="bk-start" value={start} onChange={(e) => setStart(e.target.value)}>
-              <option value="">–</option>
-              {times.slice(0, -1).map((x) => <option key={x} value={x}>{x}</option>)}
-            </NativeSelect>
-          </Field>
-          <Field label={t("end")} htmlFor="bk-end" className="col-span-3 sm:col-span-1 lg:col-span-3 xl:col-span-1">
-            <NativeSelect id="bk-end" value={end} onChange={(e) => setEnd(e.target.value)}>
-              <option value="">–</option>
-              {times.slice(1).map((x) => <option key={x} value={x}>{x}</option>)}
-            </NativeSelect>
-          </Field>
-          <Field label={t("attendees")} htmlFor="bk-att" className="col-span-3 sm:col-span-1 lg:col-span-3 xl:col-span-1" error={fieldErr(fieldErrors.attendees)}>
-            <Input id="bk-att" type="number" min={1} max={resource.capacity} value={attendees} onChange={(e) => setAttendees(Math.max(1, Number(e.target.value) || 1))} />
-          </Field>
+          <aside className="h-fit space-y-5 rounded-2xl border bg-card p-5 shadow-md lg:sticky lg:top-24" data-testid="booking-panel">
+            <div>
+              <h3 className="font-semibold">{t("selectTimeTitle")}</h3>
+              <p className="mt-1 text-sm text-muted-foreground">{t("selectTimeHint")}</p>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <Field label={t("date")} htmlFor="bk-date" className="col-span-2">
+                <Input id="bk-date" type="date" value={date} min={todayBerlin()} onChange={(e) => setDate(e.target.value)} />
+              </Field>
+              <Field label={t("start")} htmlFor="bk-start">
+                <NativeSelect id="bk-start" value={start} onChange={(e) => setStart(e.target.value)}>
+                  <option value="">–</option>
+                  {times.slice(0, -1).map((x) => <option key={x} value={x}>{x}</option>)}
+                </NativeSelect>
+              </Field>
+              <Field label={t("end")} htmlFor="bk-end">
+                <NativeSelect id="bk-end" value={end} onChange={(e) => setEnd(e.target.value)}>
+                  <option value="">–</option>
+                  {times.slice(1).map((x) => <option key={x} value={x}>{x}</option>)}
+                </NativeSelect>
+              </Field>
+              <Field label={t("attendees")} htmlFor="bk-att" className="col-span-2" error={fieldErr(fieldErrors.attendees)}>
+                <Input id="bk-att" type="number" min={1} max={resource.capacity} value={attendees} onChange={(e) => setAttendees(Math.max(1, Number(e.target.value) || 1))} />
+              </Field>
+            </div>
+            {selection ? (
+              <div className="flex items-center justify-between rounded-xl bg-secondary px-3.5 py-2.5 text-sm text-secondary-foreground">
+                <span className="font-medium tabular-nums">{t("hoursShort", { hours: hours.toLocaleString(locale) })}</span>
+                {price !== null ? <span className="font-bold tabular-nums">{formatPrice(price, locale)}</span> : null}
+              </div>
+            ) : null}
+            {error ? <FormAlert>{errText(error)}</FormAlert> : null}
+            <Button
+              size="lg"
+              className="w-full"
+              disabled={!selection}
+              onClick={() => go(user ? "review" : "details")}
+              data-testid={user ? "continue-to-review" : "continue-to-details"}
+            >
+              {t("continue")} <ArrowRight />
+            </Button>
+            {!user ? (
+              <p className="text-center text-xs text-muted-foreground">
+                {t("haveAccount")}{" "}
+                <a href={loginUrl} className="font-semibold text-primary hover:underline">{t("loginInstead")}</a>
+              </p>
+            ) : null}
+          </aside>
         </div>
-        {selection ? <p className="text-xs text-muted-foreground">{t("duration", { hours: hours.toLocaleString(locale) })} · {t("capacityHint", { count: resource.capacity })}</p> : null}
-        <Field label={t("purpose")} htmlFor="bk-purpose">
-          <Textarea id="bk-purpose" rows={2} maxLength={1000} value={purpose} onChange={(e) => setPurpose(e.target.value)} placeholder={t("purposePlaceholder")} />
-        </Field>
-
-        {error ? <FormAlert>{errText(error)}</FormAlert> : null}
-
-        {user ? (
-          <div className="space-y-3">
-            <p className="text-sm text-muted-foreground">{t("bookingAs", { name: user.name || user.email })}</p>
-            <Button className="w-full" disabled={!selection || pending} onClick={bookAsMember} data-testid="confirm-member-booking">
-              {pending ? <Loader2 className="animate-spin" /> : null}
-              {pending ? t("booking") : t("confirmBooking")}
-            </Button>
+      ) : (
+        <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
+          <div className="min-w-0 rounded-2xl border bg-card p-5 shadow-xs sm:p-8">
+            {step === "details" ? (
+              <form
+                className="space-y-5"
+                noValidate
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  if (validateGuest()) go("review");
+                }}
+                data-testid="guest-form"
+              >
+                <div>
+                  <h3 className="text-lg font-semibold">{t("detailsTitle")}</h3>
+                  <p className="mt-1 text-sm text-muted-foreground">{t("detailsHint")}</p>
+                </div>
+                <div className="hidden" aria-hidden="true">
+                  <input name="website" tabIndex={-1} autoComplete="off" value={guest.website} onChange={setG("website")} />
+                </div>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <Field label={t("firstName")} htmlFor="g-first" error={fieldErr(fieldErrors.firstName)}>
+                    <Input id="g-first" autoComplete="given-name" value={guest.firstName} onChange={setG("firstName")} aria-invalid={!!fieldErrors.firstName} />
+                  </Field>
+                  <Field label={t("lastName")} htmlFor="g-last" error={fieldErr(fieldErrors.lastName)}>
+                    <Input id="g-last" autoComplete="family-name" value={guest.lastName} onChange={setG("lastName")} aria-invalid={!!fieldErrors.lastName} />
+                  </Field>
+                  <Field label={t("email")} htmlFor="g-email" className="sm:col-span-2" error={fieldErr(fieldErrors.email)}>
+                    <Input id="g-email" type="email" inputMode="email" autoComplete="email" value={guest.email} onChange={setG("email")} aria-invalid={!!fieldErrors.email} />
+                  </Field>
+                  <Field label={t("phone")} htmlFor="g-phone" error={fieldErr(fieldErrors.phone)}>
+                    <Input id="g-phone" type="tel" autoComplete="tel" value={guest.phone} onChange={setG("phone")} />
+                  </Field>
+                  <Field label={t("company")} htmlFor="g-company">
+                    <Input id="g-company" autoComplete="organization" value={guest.company} onChange={setG("company")} />
+                  </Field>
+                  <Field label={t("purpose")} htmlFor="bk-purpose" className="sm:col-span-2">
+                    <Textarea id="bk-purpose" rows={3} maxLength={1000} value={purpose} onChange={(e) => setPurpose(e.target.value)} placeholder={t("purposePlaceholder")} />
+                  </Field>
+                </div>
+                {Object.keys(fieldErrors).length ? <p className="sr-only" role="alert">{tv("required")}</p> : null}
+                <div className="flex flex-col-reverse gap-2 border-t pt-5 sm:flex-row sm:justify-between">
+                  <Button type="button" variant="ghost" onClick={() => go("time")}>
+                    <ArrowLeft /> {t("back")}
+                  </Button>
+                  <Button type="submit" size="lg" data-testid="continue-to-review">
+                    {t("continue")} <ArrowRight />
+                  </Button>
+                </div>
+              </form>
+            ) : (
+              <div className="space-y-6" data-testid="booking-review">
+                <div>
+                  <h3 className="text-lg font-semibold">{t("reviewTitle")}</h3>
+                  <p className="mt-1 text-sm text-muted-foreground">{t("reviewHint")}</p>
+                </div>
+                <dl className="divide-y rounded-xl border">
+                  <ReviewRow label={t("resource")} value={resource.name} />
+                  <ReviewRow label={t("date")} value={dateLabel} onEdit={() => go("time")} editLabel={t("change")} />
+                  <ReviewRow label={t("time")} value={`${t("timeRange", { start, end })} · ${t("hoursShort", { hours: hours.toLocaleString(locale) })}`} onEdit={() => go("time")} editLabel={t("change")} />
+                  <ReviewRow label={t("attendees")} value={String(attendees)} />
+                  <ReviewRow
+                    label={t("customer")}
+                    value={
+                      user ? (
+                        <>
+                          {user.name || user.email}
+                          <span className="block text-muted-foreground">{user.email}</span>
+                        </>
+                      ) : (
+                        <>
+                          {guest.firstName} {guest.lastName}
+                          <span className="block text-muted-foreground">{guest.email}</span>
+                        </>
+                      )
+                    }
+                    onEdit={user ? undefined : () => go("details")}
+                    editLabel={t("change")}
+                  />
+                  {user ? (
+                    <div className="px-4 py-3">
+                      <Field label={t("purpose")} htmlFor="bk-purpose">
+                        <Textarea id="bk-purpose" rows={2} maxLength={1000} value={purpose} onChange={(e) => setPurpose(e.target.value)} placeholder={t("purposePlaceholder")} />
+                      </Field>
+                    </div>
+                  ) : purpose ? (
+                    <ReviewRow label={t("purpose")} value={purpose} />
+                  ) : null}
+                </dl>
+                {error ? <FormAlert>{errText(error)}</FormAlert> : null}
+                <p className="text-xs text-muted-foreground">
+                  {t.rich("privacyNote", {
+                    terms: (c) => <a className="underline underline-offset-2" target="_blank" href={localizeHref("/terms", locale)}>{c}</a>,
+                    privacy: (c) => <a className="underline underline-offset-2" target="_blank" href={localizeHref("/privacy", locale)}>{c}</a>,
+                  })}
+                </p>
+                <div className="flex flex-col-reverse gap-2 border-t pt-5 sm:flex-row sm:justify-between">
+                  <Button type="button" variant="ghost" onClick={() => go(user ? "time" : "details")} disabled={pending}>
+                    <ArrowLeft /> {t("back")}
+                  </Button>
+                  <Button size="lg" onClick={confirm} disabled={!selection || pending} data-testid="confirm-booking">
+                    {pending ? <Loader2 className="animate-spin" /> : null}
+                    {pending ? t("booking") : t("confirmBooking")}
+                  </Button>
+                </div>
+              </div>
+            )}
           </div>
-        ) : step === "details" ? (
-          <div className="space-y-3 border-t pt-4">
-            <p className="text-sm font-medium">{t("howToBook")}</p>
-            <Button className="w-full" disabled={!selection} onClick={() => setStep("guest")} data-testid="continue-as-guest">
-              <UserRound /> {t("continueAsGuest")}
-            </Button>
-            <p className="text-xs text-muted-foreground">{t("guestHint")}</p>
-            <div className="grid grid-cols-2 gap-2">
-              <Button asChild variant="outline">
-                <a href={loginUrl}><LogIn /> {t("loginToBook")}</a>
-              </Button>
-              <Button asChild variant="outline">
-                <a href={signupUrl}><UserPlus /> {t("signupToBook")}</a>
-              </Button>
-            </div>
-            <p className="text-xs text-muted-foreground">{t("accountHint")}</p>
-          </div>
-        ) : (
-          <form
-            className="space-y-3 border-t pt-4"
-            noValidate
-            onSubmit={(e) => {
-              e.preventDefault();
-              bookAsGuest(new FormData(e.currentTarget));
-            }}
-            data-testid="guest-form"
-          >
-            <p className="text-sm font-medium">{t("guestDetails")}</p>
-            <div className="hidden" aria-hidden="true">
-              <input name="website" tabIndex={-1} autoComplete="off" />
-            </div>
-            <div className="grid grid-cols-2 gap-2">
-              <Field label={t("firstName")} htmlFor="g-first" error={fieldErr(fieldErrors.firstName)}>
-                <Input id="g-first" name="firstName" autoComplete="given-name" aria-invalid={!!fieldErrors.firstName} />
-              </Field>
-              <Field label={t("lastName")} htmlFor="g-last" error={fieldErr(fieldErrors.lastName)}>
-                <Input id="g-last" name="lastName" autoComplete="family-name" aria-invalid={!!fieldErrors.lastName} />
-              </Field>
-            </div>
-            <Field label={t("email")} htmlFor="g-email" error={fieldErr(fieldErrors.email)}>
-              <Input id="g-email" name="email" type="email" autoComplete="email" aria-invalid={!!fieldErrors.email} />
-            </Field>
-            <Field label={t("phone")} htmlFor="g-phone" error={fieldErr(fieldErrors.phone)}>
-              <Input id="g-phone" name="phone" type="tel" autoComplete="tel" />
-            </Field>
-            <Field label={t("company")} htmlFor="g-company">
-              <Input id="g-company" name="company" autoComplete="organization" />
-            </Field>
-            <p className="text-xs text-muted-foreground">
-              {t.rich("privacyNote", {
-                terms: (c) => <a className="underline" target="_blank" href={localizeHref("/terms", locale)}>{c}</a>,
-                privacy: (c) => <a className="underline" target="_blank" href={localizeHref("/privacy", locale)}>{c}</a>,
-              })}
-            </p>
-            <div className="flex gap-2">
-              <Button type="button" variant="ghost" onClick={() => setStep("details")}>{t("back")}</Button>
-              <Button type="submit" className="flex-1" disabled={!selection || pending} data-testid="confirm-guest-booking">
-                {pending ? <Loader2 className="animate-spin" /> : null}
-                {pending ? t("booking") : t("confirmBooking")}
-              </Button>
-            </div>
-          </form>
-        )}
-      </aside>
+          <aside className="h-fit rounded-2xl border bg-surface p-5 lg:sticky lg:top-24">
+            {summary}
+            {user && step === "review" ? <p className="mt-4 border-t pt-4 text-xs text-muted-foreground">{t("memberDetails")}</p> : null}
+            {!user && step === "details" ? (
+              <p className="mt-4 border-t pt-4 text-xs text-muted-foreground">
+                <LogIn className="mr-1 inline h-3.5 w-3.5" />
+                {t("haveAccount")}{" "}
+                <a href={loginUrl} className="font-semibold text-primary hover:underline">{t("loginInstead")}</a>
+              </p>
+            ) : null}
+          </aside>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ReviewRow({ label, value, onEdit, editLabel }: { label: string; value: React.ReactNode; onEdit?: () => void; editLabel?: string }) {
+  return (
+    <div className="flex items-start justify-between gap-4 px-4 py-3 text-sm">
+      <div className="min-w-0">
+        <dt className="text-muted-foreground">{label}</dt>
+        <dd className="mt-0.5 break-words font-medium">{value}</dd>
+      </div>
+      {onEdit ? (
+        <button type="button" onClick={onEdit} className="inline-flex shrink-0 items-center gap-1 rounded-md px-2 py-1 text-xs font-semibold text-primary hover:bg-secondary">
+          <Pencil className="h-3 w-3" /> {editLabel}
+        </button>
+      ) : null}
     </div>
   );
 }

@@ -38,7 +38,7 @@ export default async function ManageBookingPage({ params, searchParams }: Props)
   const { data: b } = valid
     ? await admin
         .from("bookings")
-        .select("id, booking_reference, status, start_at, end_at, attendees, booking_type, workspaces(name, slug, floor), rooms(name, slug, floor)")
+        .select("id, booking_reference, status, start_at, end_at, attendees, booking_type, workspaces(name, slug, floor), rooms(name, slug, floor), guests(first_name, last_name, email)")
         .eq("management_token_hash", hashToken(token))
         .maybeSingle()
     : { data: null };
@@ -58,59 +58,61 @@ export default async function ManageBookingPage({ params, searchParams }: Props)
   const start = new Date(b.start_at);
   const end = new Date(b.end_at);
 
+  const guest = b.guests as { first_name: string; last_name: string; email: string } | null;
+  const confirmedNow = !!isNew && b.status === "confirmed";
+  const rows: [string, React.ReactNode, string?][] = [
+    [t("reference"), <span key="ref" className="font-mono text-base font-bold tracking-tight">{b.booking_reference}</span>, "booking-reference"],
+    [t("status"), <Badge key="st" variant={statusVariant[b.status as keyof typeof statusVariant]}>{ts(`booking.${b.status}`)}</Badge>, "booking-status"],
+    [t("resource"), <>{res?.name} <span className="text-muted-foreground">· {ts(`bookingType.${b.booking_type}`)}</span></>],
+    [t("date"), format.dateTime(start, "weekday")],
+    [t("time"), t("timeRange", { start: format.dateTime(start, "time"), end: format.dateTime(end, "time") })],
+    [t("attendees"), String(b.attendees)],
+    ...(guest ? ([[t("customer"), `${guest.first_name} ${guest.last_name}`], [t("email"), guest.email]] as [string, string][]) : []),
+    [t("location"), [settings.company_name, res?.floor, settings.address_line_1, settings.city].filter(Boolean).join(", ")],
+  ];
+
   return (
-    <div className="mx-auto max-w-2xl px-4 py-12">
-      {isNew && b.status === "confirmed" ? (
-        <div className="mb-8 rounded-xl border border-emerald-200 bg-emerald-50 p-6 text-emerald-950" data-testid="booking-success">
-          <CheckCircle2 className="mb-3 h-8 w-8 text-emerald-600" />
-          <h1 className="text-2xl font-semibold">{t("newBookingTitle")}</h1>
-          <p className="mt-2 text-sm">{t("newBookingText")}</p>
+    <div className="mx-auto max-w-2xl px-4 py-12 sm:py-16">
+      {confirmedNow ? (
+        <div className="mb-8 text-center" data-testid="booking-success">
+          <span className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-emerald-50 text-emerald-600 ring-8 ring-emerald-50/50">
+            <CheckCircle2 className="h-8 w-8" />
+          </span>
+          <h1 className="text-3xl font-extrabold tracking-tight">{t("confirmedTitle")}</h1>
+          <p className="mx-auto mt-3 max-w-md text-muted-foreground">{t("newBookingText")}</p>
         </div>
       ) : (
-        <h1 className="mb-6 text-2xl font-semibold">{t("manageTitle")}</h1>
+        <h1 className="mb-6 text-3xl font-extrabold tracking-tight">{t("manageTitle")}</h1>
       )}
-      <div className="rounded-xl border bg-card p-6 shadow-sm">
-        <dl className="grid gap-4 sm:grid-cols-2">
-          <div>
-            <dt className="text-sm text-muted-foreground">{t("reference")}</dt>
-            <dd className="font-mono text-lg font-semibold" data-testid="booking-reference">{b.booking_reference}</dd>
-          </div>
-          <div>
-            <dt className="text-sm text-muted-foreground">{t("status")}</dt>
-            <dd><Badge variant={statusVariant[b.status as keyof typeof statusVariant]} data-testid="booking-status">{ts(`booking.${b.status}`)}</Badge></dd>
-          </div>
-          <div>
-            <dt className="text-sm text-muted-foreground">{t("resource")}</dt>
-            <dd className="font-medium">{res?.name} <span className="text-sm text-muted-foreground">({ts(`bookingType.${b.booking_type}`)})</span></dd>
-          </div>
-          <div>
-            <dt className="text-sm text-muted-foreground">{t("date")}</dt>
-            <dd className="font-medium">{format.dateTime(start, "weekday")}</dd>
-          </div>
-          <div>
-            <dt className="text-sm text-muted-foreground">{t("time")}</dt>
-            <dd className="font-medium">{t("timeRange", { start: format.dateTime(start, "time"), end: format.dateTime(end, "time") })}</dd>
-          </div>
-          <div>
-            <dt className="text-sm text-muted-foreground">{t("location")}</dt>
-            <dd className="font-medium">{[settings.company_name, res?.floor, settings.address_line_1, settings.city].filter(Boolean).join(", ")}</dd>
-          </div>
+      <div className="overflow-hidden rounded-2xl border bg-card shadow-md">
+        <dl className="divide-y">
+          {rows.map(([label, value, testId]) => (
+            <div key={label} className="grid grid-cols-[8.5rem_1fr] items-center gap-4 px-5 py-3.5 text-sm sm:grid-cols-[11rem_1fr] sm:px-6">
+              <dt className="text-muted-foreground">{label}</dt>
+              <dd className="min-w-0 break-words font-medium" data-testid={testId}>{value}</dd>
+            </div>
+          ))}
         </dl>
-        <div className="mt-6 flex flex-wrap items-center gap-3 border-t pt-6">
-          {cancellable ? (
-            <>
-              <CancelBookingButton token={token} reference={b.booking_reference} />
-              <p className="text-xs text-muted-foreground">{t("cancelDeadline", { hours: settings.cancellation_cutoff_hours })}</p>
-            </>
-          ) : ["pending", "confirmed"].includes(b.status) ? (
-            <p className="text-sm text-muted-foreground">{t("cannotCancel")}</p>
-          ) : null}
-        </div>
-        <p className="mt-4 text-xs text-muted-foreground">{t("rescheduleSoon")} {t("manageBookmark")}</p>
+        {cancellable || ["pending", "confirmed"].includes(b.status) ? (
+          <div className="flex flex-wrap items-center gap-3 border-t bg-surface px-5 py-4 sm:px-6">
+            {cancellable ? (
+              <>
+                <CancelBookingButton token={token} reference={b.booking_reference} />
+                <p className="text-xs text-muted-foreground">{t("cancelDeadline", { hours: settings.cancellation_cutoff_hours })}</p>
+              </>
+            ) : (
+              <p className="text-sm text-muted-foreground">{t("cannotCancel")}</p>
+            )}
+          </div>
+        ) : null}
       </div>
-      <div className="mt-6">
-        <Button asChild variant="ghost">
-          <a href={localizeHref("/", locale)}>{t("bookAnother")}</a>
+      <p className="mt-4 text-center text-xs text-muted-foreground">{t("rescheduleSoon")} {t("manageBookmark")}</p>
+      <div className="mt-8 flex flex-col justify-center gap-2 sm:flex-row">
+        <Button asChild size="lg">
+          <a href={localizeHref("/coworking", locale)}>{t("bookAnother")}</a>
+        </Button>
+        <Button asChild size="lg" variant="outline">
+          <a href={`/${locale}`}>{t("backToHome")}</a>
         </Button>
       </div>
     </div>

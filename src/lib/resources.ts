@@ -27,6 +27,9 @@ export type ResourceView = {
   zone: string;
   deskNumber: string | null;
   capacity: number;
+  /** EUR; null when no price is set (shown as "on request") */
+  priceHourly: number | null;
+  priceDaily: number | null;
   status: string;
   featured: boolean;
   publicVisible: boolean;
@@ -62,6 +65,12 @@ export const getAmenities = cache(async (locale: Locale): Promise<AmenityView[]>
   return (data ?? []).map((a) => toAmenityView(a as AmenityRow, locale));
 });
 
+function toPrice(v: unknown): number | null {
+  if (v === null || v === undefined || v === "") return null;
+  const n = Number(v);
+  return Number.isFinite(n) ? n : null;
+}
+
 type ImageRow = { id: string; display_order: number; is_cover: boolean; media: MediaRow | null };
 
 function mapResource(row: Record<string, unknown>, type: ResourceType, locale: Locale, amenities: AmenityView[]): ResourceView {
@@ -79,6 +88,8 @@ function mapResource(row: Record<string, unknown>, type: ResourceType, locale: L
     zone: (row.zone as string) ?? "",
     deskNumber: (row.desk_number as string | null) ?? null,
     capacity: row.capacity as number,
+    priceHourly: toPrice(row.price_hourly),
+    priceDaily: toPrice(row.price_daily),
     status: row.status as string,
     featured: row.featured as boolean,
     publicVisible: row.public_visible as boolean,

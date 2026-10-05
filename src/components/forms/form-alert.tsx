@@ -7,10 +7,10 @@ export function FormAlert({ kind = "error", children, className }: { kind?: "err
     <div
       role={kind === "error" ? "alert" : "status"}
       className={cn(
-        "flex items-start gap-2 rounded-md border px-3 py-2.5 text-sm",
+        "flex items-start gap-2.5 rounded-xl border px-3.5 py-3 text-sm",
         kind === "error" && "border-destructive/30 bg-destructive/5 text-destructive",
-        kind === "success" && "border-emerald-300 bg-emerald-50 text-emerald-900",
-        kind === "info" && "border-sky-200 bg-sky-50 text-sky-900",
+        kind === "success" && "border-emerald-600/20 bg-emerald-50 text-emerald-900",
+        kind === "info" && "border-sky-600/20 bg-sky-50 text-sky-900",
         className,
       )}
     >

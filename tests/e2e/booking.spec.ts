@@ -14,12 +14,13 @@ for (const c of [
     const email = `e2e-guest-${Date.now()}@example.com`;
 
     await page.goto(c.path, { waitUntil: "networkidle" });
-    await pickSlot(page, day, "10:00", "11:00", "continue-as-guest");
-    await page.click("[data-testid=continue-as-guest]");
+    await pickSlot(page, day, "10:00", "11:00", "continue-to-details");
+    await page.click("[data-testid=continue-to-details]");
     await page.fill("#g-first", "Erika");
     await page.fill("#g-last", "Muster");
     await page.fill("#g-email", email);
-    await page.click("[data-testid=confirm-guest-booking]");
+    await page.click("[data-testid=continue-to-review]");
+    await page.click("[data-testid=confirm-booking]");
 
     await page.waitForURL(c.manage, { timeout: 30_000 });
     const reference = (await page.textContent("[data-testid=booking-reference]"))!.trim();
@@ -61,12 +62,13 @@ test("taken slot is refused and shown as booked", async ({ page }) => {
   created.push(data![0].booking_reference);
 
   await page.goto("/en/meeting-rooms/munich-room", { waitUntil: "networkidle" });
-  await pickSlot(page, day, "14:00", "15:00", "continue-as-guest");
-  await page.click("[data-testid=continue-as-guest]");
+  await pickSlot(page, day, "14:00", "15:00", "continue-to-details");
+  await page.click("[data-testid=continue-to-details]");
   await page.fill("#g-first", "Late");
   await page.fill("#g-last", "Comer");
   await page.fill("#g-email", `e2e-late-${Date.now()}@example.com`);
-  await page.click("[data-testid=confirm-guest-booking]");
+  await page.click("[data-testid=continue-to-review]");
+  await page.click("[data-testid=confirm-booking]");
   await expect(page.getByText(/just taken|already been booked/i).first()).toBeVisible();
   expect(page.url()).toContain("/meeting-rooms/munich-room");
 });
@@ -75,8 +77,9 @@ test("member books a desk, sees it in the account and cancels it", async ({ page
   const { day } = await freeDay("workspace", "b-03", "09:00", "12:00");
   await login(page, MEMBER);
   await page.goto("/de/coworking/b-03", { waitUntil: "networkidle" });
-  await pickSlot(page, day, "09:00", "12:00", "confirm-member-booking");
-  await page.click("[data-testid=confirm-member-booking]");
+  await pickSlot(page, day, "09:00", "12:00", "continue-to-review");
+  await page.click("[data-testid=continue-to-review]");
+  await page.click("[data-testid=confirm-booking]");
   await page.waitForURL(/\/de\/konto\/buchungen/, { timeout: 30_000 });
   const reference = new URL(page.url()).searchParams.get("new")!;
   created.push(reference);

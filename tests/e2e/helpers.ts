@@ -111,7 +111,7 @@ export async function expectSaved(page: Page, text?: RegExp) {
 }
 
 /** Picks a slot in the booking panel once the widget is hydrated (the calendar renders client-side). */
-export async function pickSlot(page: Page, day: string, start: string, end: string, button: "continue-as-guest" | "confirm-member-booking") {
+export async function pickSlot(page: Page, day: string, start: string, end: string, button: "continue-to-details" | "continue-to-review") {
   await page.locator(".fc").first().waitFor({ timeout: 60_000 });
   await expect(async () => {
     await page.fill("#bk-date", day);

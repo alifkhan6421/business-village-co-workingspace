@@ -19,13 +19,15 @@ export function ContactForm({ title, intro, successMessage }: { title: string; i
   const fe = state && !state.ok ? state.fieldErrors ?? {} : {};
 
   return (
-    <div className="rounded-xl border bg-card p-6 shadow-sm">
-      {title ? <h2 className="text-xl font-semibold">{title}</h2> : null}
+    <div className="rounded-2xl border bg-card p-6 shadow-md sm:p-8">
+      {title ? <h2 className="text-xl font-bold tracking-tight">{title}</h2> : null}
       {intro ? <p className="mt-1 text-sm text-muted-foreground">{intro}</p> : null}
       {state?.ok ? (
-        <div className="mt-6 flex items-start gap-3 rounded-lg bg-emerald-50 p-4 text-emerald-900" role="status" data-testid="contact-success">
-          <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0" />
-          <p>{successMessage}</p>
+        <div className="mt-6 flex flex-col items-center gap-3 rounded-2xl bg-emerald-50 px-6 py-10 text-center text-emerald-900" role="status" data-testid="contact-success">
+          <span className="flex h-12 w-12 items-center justify-center rounded-full bg-white text-emerald-600 shadow-xs">
+            <CheckCircle2 className="h-6 w-6" />
+          </span>
+          <p className="max-w-sm font-medium">{successMessage}</p>
         </div>
       ) : (
         <form onSubmit={onSubmit} className="mt-6 space-y-4" noValidate data-testid="contact-form">
@@ -51,7 +53,7 @@ export function ContactForm({ title, intro, successMessage }: { title: string; i
           <Field label={t("contactFormMessage")} htmlFor="c-message" error={fieldErr(fe.message)}>
             <Textarea id="c-message" name="message" rows={6} aria-invalid={!!fe.message} />
           </Field>
-          <SubmitButton pending={pending} pendingLabel={t("contactSending")}>
+          <SubmitButton size="lg" className="w-full sm:w-auto" pending={pending} pendingLabel={t("contactSending")}>
             {t("contactSend")}
           </SubmitButton>
         </form>
