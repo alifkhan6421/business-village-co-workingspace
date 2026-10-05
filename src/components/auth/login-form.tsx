@@ -39,11 +39,11 @@ export function LoginForm({ next, linkError }: { next?: string; linkError?: bool
           <Input id="password" name="password" type="password" autoComplete="current-password" required aria-invalid={!!fe.password} />
         </Field>
         <div className="flex justify-end">
-          <a href={localizeHref("/forgot-password", locale)} className="text-sm text-primary hover:underline">
+          <a href={localizeHref("/forgot-password", locale)} className="text-sm font-medium text-primary hover:underline">
             {t("forgotPassword")}
           </a>
         </div>
-        <SubmitButton pending={pending} className="w-full" pendingLabel={t("loginButton")}>
+        <SubmitButton pending={pending} size="lg" className="w-full" pendingLabel={t("loginButton")}>
           {t("loginButton")}
         </SubmitButton>
       </form>

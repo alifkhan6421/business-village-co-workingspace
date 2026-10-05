@@ -21,7 +21,7 @@ export function ForgotForm() {
       <Field label={t("email")} htmlFor="email" error={fieldErr(fe.email)}>
         <Input id="email" name="email" type="email" autoComplete="email" required aria-invalid={!!fe.email} />
       </Field>
-      <SubmitButton pending={pending} className="w-full" pendingLabel={t("forgotButton")}>
+      <SubmitButton pending={pending} size="lg" className="w-full" pendingLabel={t("forgotButton")}>
         {t("forgotButton")}
       </SubmitButton>
     </form>

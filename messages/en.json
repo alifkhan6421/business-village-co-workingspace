@@ -526,7 +526,19 @@
     "memberSince": "Member since {date}",
     "quickActions": "Quick actions",
     "viewAll": "All bookings",
-    "upcomingCount": "{count, plural, =0 {No upcoming bookings} one {# upcoming booking} other {# upcoming bookings}}"
+    "upcomingCount": "{count, plural, =0 {No upcoming bookings} one {# upcoming booking} other {# upcoming bookings}}",
+    "dashboard": "Dashboard",
+    "spaces": "Spaces",
+    "settings": "Settings",
+    "menu": "Account menu",
+    "quickBook": "Book again",
+    "nextUp": "Your next booking",
+    "noUpcomingHint": "Find a desk or meeting room and book it in under a minute.",
+    "pastBookings": "Recent bookings",
+    "suggested": "Suggested spaces",
+    "yourProfile": "Your profile",
+    "editProfile": "Edit profile",
+    "noPastShort": "Your completed bookings will appear here."
   },
   "admin": {
     "nav": {

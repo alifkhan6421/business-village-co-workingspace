@@ -35,8 +35,8 @@ export function ProfileForm({ profile, locale }: { profile: Profile; locale: "de
   const fe = state && !state.ok ? state.fieldErrors ?? {} : {};
   return (
     <div className="grid gap-8 lg:grid-cols-[1.5fr_1fr]">
-      <form onSubmit={onSubmit} className="space-y-6 rounded-xl border bg-card p-6" noValidate data-testid="profile-form">
-        <h2 className="font-semibold">{t("personal")}</h2>
+      <form onSubmit={onSubmit} className="space-y-6 rounded-2xl border bg-card p-6 shadow-xs sm:p-8" noValidate data-testid="profile-form">
+        <h2 className="text-base font-bold tracking-tight">{t("personal")}</h2>
         {state && !state.ok ? <FormAlert>{errText(state.error)}</FormAlert> : null}
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label={t("firstName")} htmlFor="firstName" error={fieldErr(fe.firstName)}>
@@ -70,8 +70,8 @@ export function ProfileForm({ profile, locale }: { profile: Profile; locale: "de
         </div>
         <SubmitButton pending={pending}>{tc("save")}</SubmitButton>
       </form>
-      <form onSubmit={reset.onSubmit} className="h-fit space-y-3 rounded-xl border bg-card p-6">
-        <h2 className="font-semibold">{t("passwordTitle")}</h2>
+      <form id="settings" onSubmit={reset.onSubmit} className="h-fit scroll-mt-24 space-y-3 rounded-2xl border bg-card p-6 shadow-xs sm:p-8">
+        <h2 className="text-base font-bold tracking-tight">{t("passwordTitle")}</h2>
         <p className="text-sm text-muted-foreground">{t("passwordHint")}</p>
         <input type="hidden" name="email" value={profile.email} />
         <input type="hidden" name="locale" value={locale} />

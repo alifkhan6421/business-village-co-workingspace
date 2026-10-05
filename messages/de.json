@@ -526,7 +526,19 @@
     "memberSince": "Mitglied seit {date}",
     "quickActions": "Schnellzugriff",
     "viewAll": "Alle Buchungen",
-    "upcomingCount": "{count, plural, =0 {Keine bevorstehenden Buchungen} one {# bevorstehende Buchung} other {# bevorstehende Buchungen}}"
+    "upcomingCount": "{count, plural, =0 {Keine bevorstehenden Buchungen} one {# bevorstehende Buchung} other {# bevorstehende Buchungen}}",
+    "dashboard": "Übersicht",
+    "spaces": "Räume",
+    "settings": "Einstellungen",
+    "menu": "Kontomenü",
+    "quickBook": "Erneut buchen",
+    "nextUp": "Ihre nächste Buchung",
+    "noUpcomingHint": "Finden Sie einen Arbeitsplatz oder Besprechungsraum und buchen Sie in unter einer Minute.",
+    "pastBookings": "Letzte Buchungen",
+    "suggested": "Empfohlene Räume",
+    "yourProfile": "Ihr Profil",
+    "editProfile": "Profil bearbeiten",
+    "noPastShort": "Hier erscheinen Ihre abgeschlossenen Buchungen."
   },
   "admin": {
     "nav": {
