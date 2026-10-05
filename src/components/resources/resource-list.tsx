@@ -66,11 +66,11 @@ export async function ResourceList({ type, locale, searchParams }: { type: Resou
           <SlidersHorizontal className="h-4 w-4" /> {t("filters")}
         </div>
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-6">
-          <label className="space-y-1 text-sm">
+          <label className="block min-w-0 space-y-1 text-sm">
             <span className="font-medium">{t("dateLabel")}</span>
             <Input type="date" name="date" defaultValue={date} min={todayBerlin()} />
           </label>
-          <label className="space-y-1 text-sm">
+          <label className="block min-w-0 space-y-1 text-sm">
             <span className="font-medium">{t("fromLabel")}</span>
             <NativeSelect name="start" defaultValue={start}>
               <option value="">–</option>
@@ -79,7 +79,7 @@ export async function ResourceList({ type, locale, searchParams }: { type: Resou
               ))}
             </NativeSelect>
           </label>
-          <label className="space-y-1 text-sm">
+          <label className="block min-w-0 space-y-1 text-sm">
             <span className="font-medium">{t("toLabel")}</span>
             <NativeSelect name="end" defaultValue={end}>
               <option value="">–</option>
@@ -88,7 +88,7 @@ export async function ResourceList({ type, locale, searchParams }: { type: Resou
               ))}
             </NativeSelect>
           </label>
-          <label className="space-y-1 text-sm">
+          <label className="block min-w-0 space-y-1 text-sm">
             <span className="font-medium">{t("floor")}</span>
             <NativeSelect name="floor" defaultValue={floor}>
               <option value="">{t("anyFloor")}</option>
@@ -98,7 +98,7 @@ export async function ResourceList({ type, locale, searchParams }: { type: Resou
             </NativeSelect>
           </label>
           {type === "workspace" ? (
-            <label className="space-y-1 text-sm">
+            <label className="block min-w-0 space-y-1 text-sm">
               <span className="font-medium">{t("zone")}</span>
               <NativeSelect name="zone" defaultValue={zone}>
                 <option value="">{t("anyZone")}</option>
@@ -108,7 +108,7 @@ export async function ResourceList({ type, locale, searchParams }: { type: Resou
               </NativeSelect>
             </label>
           ) : null}
-          <label className="space-y-1 text-sm">
+          <label className="block min-w-0 space-y-1 text-sm">
             <span className="font-medium">{t("minCapacity")}</span>
             <Input type="number" name="capacity" min={1} max={500} defaultValue={capacity || ""} />
           </label>

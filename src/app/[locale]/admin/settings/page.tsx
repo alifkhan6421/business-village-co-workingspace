@@ -51,7 +51,7 @@ export default async function SettingsPage({ params }: { params: Promise<{ local
           <CardHeader>
             <CardTitle className="flex flex-wrap items-center gap-2 text-base">
               {t("emailTemplates")}
-              <Badge variant={configured ? "success" : "warning"}>{t("emailStatus")}: {configured ? t("emailConfigured") : t("emailNotConfigured")}</Badge>
+              <Badge variant={configured ? "success" : "warning"} className="whitespace-normal">{t("emailStatus")}: {configured ? t("emailConfigured") : t("emailNotConfigured")}</Badge>
             </CardTitle>
             <CardDescription />
           </CardHeader>
