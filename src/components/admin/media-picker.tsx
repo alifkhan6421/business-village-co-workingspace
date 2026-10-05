@@ -258,3 +258,65 @@ export function ImageField({
     </div>
   );
 }
+
+/** Drop area for image files; also opens the file dialog on click or Enter. */
+export function UploadDropzone({ onUploaded, className }: { onUploaded: (items: MediaItem[]) => void; className?: string }) {
+  const ref = useRef<HTMLInputElement>(null);
+  const { upload, uploading } = useMediaUpload();
+  const [over, setOver] = useState(false);
+  const t = useTranslations("admin.gallery");
+  const handle = async (files: FileList | null) => {
+    const images = Array.from(files ?? []).filter((f) => f.type.startsWith("image/"));
+    if (!images.length) return;
+    const items = await upload(images);
+    if (items.length) onUploaded(items);
+  };
+  return (
+    <div
+      role="button"
+      tabIndex={0}
+      aria-disabled={uploading}
+      onClick={() => !uploading && ref.current?.click()}
+      onKeyDown={(e) => {
+        if ((e.key === "Enter" || e.key === " ") && !uploading) {
+          e.preventDefault();
+          ref.current?.click();
+        }
+      }}
+      onDragOver={(e) => {
+        e.preventDefault();
+        setOver(true);
+      }}
+      onDragLeave={() => setOver(false)}
+      onDrop={(e) => {
+        e.preventDefault();
+        setOver(false);
+        if (!uploading) void handle(e.dataTransfer.files);
+      }}
+      className={cn(
+        "flex cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed px-4 py-8 text-center transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+        over ? "border-primary bg-primary/5" : "border-border bg-surface hover:border-primary/40",
+        className,
+      )}
+      data-testid="upload-dropzone"
+    >
+      <input
+        ref={ref}
+        type="file"
+        accept="image/jpeg,image/png,image/webp,image/avif"
+        multiple
+        className="sr-only"
+        tabIndex={-1}
+        onChange={async (e) => {
+          await handle(e.target.files);
+          e.target.value = "";
+        }}
+      />
+      <span className="flex h-11 w-11 items-center justify-center rounded-full bg-primary/10 text-primary">
+        {uploading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Upload className="h-5 w-5" />}
+      </span>
+      <span className="text-sm font-semibold">{uploading ? t("uploading") : t("dropTitle")}</span>
+      <span className="text-xs text-muted-foreground">{t("dropHint")}</span>
+    </div>
+  );
+}

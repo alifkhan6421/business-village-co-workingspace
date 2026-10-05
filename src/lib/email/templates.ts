@@ -55,28 +55,38 @@ function layout(opts: {
   address?: string;
 }) {
   const rows = opts.rows ?? [];
+  // Matches the site: white card, green brand, soft grey surface, rounded corners.
+  const C = { brand: "#1b5e4a", text: "#17231e", muted: "#5f6d67", surface: "#f6f8f7", border: "#e4e9e6", page: "#f1f4f2" };
+  const font = "'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif";
   const rowsHtml = rows.length
-    ? `<table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;border-collapse:collapse;margin:20px 0;background:#f5f7f4;border-radius:8px">${rows
+    ? `<table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;border-collapse:separate;border-spacing:0;margin:24px 0;background:${C.surface};border:1px solid ${C.border};border-radius:12px">${rows
         .map(
-          ([l, v]) =>
-            `<tr><td style="padding:10px 14px;color:#5b6b63;font-size:13px;width:40%;vertical-align:top">${esc(l)}</td><td style="padding:10px 14px;font-size:14px;font-weight:600;color:#1f2d27">${esc(v).replace(/\n/g, "<br>")}</td></tr>`,
+          ([l, v], i) =>
+            `<tr><td style="padding:12px 16px;color:${C.muted};font-size:13px;width:38%;vertical-align:top;${i ? `border-top:1px solid ${C.border};` : ""}">${esc(l)}</td><td style="padding:12px 16px;font-size:14px;font-weight:600;color:${C.text};${i ? `border-top:1px solid ${C.border};` : ""}">${esc(v).replace(/\n/g, "<br>")}</td></tr>`,
         )
         .join("")}</table>`
     : "";
   const buttonHtml = opts.button
-    ? `<p style="margin:24px 0"><a href="${esc(opts.button.url)}" style="display:inline-block;background:#2f6b57;color:#ffffff;text-decoration:none;padding:12px 22px;border-radius:6px;font-weight:600">${esc(opts.button.label)}</a></p><p style="font-size:12px;color:#6b7a73">${esc(opts.linkFallback)}<br><a href="${esc(opts.button.url)}" style="color:#2f6b57;word-break:break-all">${esc(opts.button.url)}</a></p>`
+    ? `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:28px 0 8px"><tr><td style="border-radius:10px;background:${C.brand}"><a href="${esc(opts.button.url)}" style="display:inline-block;color:#ffffff;text-decoration:none;padding:13px 24px;border-radius:10px;font-weight:700;font-size:15px">${esc(opts.button.label)}</a></td></tr></table><p style="margin:12px 0 0;font-size:12px;line-height:1.5;color:${C.muted}">${esc(opts.linkFallback)}<br><a href="${esc(opts.button.url)}" style="color:${C.brand};word-break:break-all">${esc(opts.button.url)}</a></p>`
     : "";
-  const html = `<!doctype html><html><body style="margin:0;background:#eef1ec;font-family:Arial,Helvetica,sans-serif;color:#1f2d27">
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:24px 12px">
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border-radius:12px;overflow:hidden">
-<tr><td style="background:#2f6b57;color:#ffffff;padding:18px 24px;font-size:18px;font-weight:700;letter-spacing:.3px">${esc(opts.company)}</td></tr>
-<tr><td style="padding:28px 24px 8px">
-<h1 style="margin:0 0 12px;font-size:22px;line-height:1.3">${esc(opts.heading)}</h1>
-<p style="margin:0;font-size:15px;line-height:1.6">${esc(opts.intro).replace(/\n/g, "<br>")}</p>
+  const initials = opts.company
+    .split(/\s+/)
+    .map((w) => w[0])
+    .filter(Boolean)
+    .slice(0, 2)
+    .join("")
+    .toUpperCase();
+  const html = `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light"></head><body style="margin:0;background:${C.page};font-family:${font};color:${C.text};-webkit-font-smoothing:antialiased">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:32px 12px">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px">
+<tr><td style="padding:0 4px 18px"><table role="presentation" cellpadding="0" cellspacing="0"><tr><td style="width:36px;height:36px;border-radius:10px;background:${C.brand};color:#ffffff;font-size:13px;font-weight:800;text-align:center;vertical-align:middle">${esc(initials || "BV")}</td><td style="padding-left:10px;font-size:17px;font-weight:800;color:${C.text}">${esc(opts.company)}</td></tr></table></td></tr>
+<tr><td style="background:#ffffff;border:1px solid ${C.border};border-radius:16px;padding:32px 28px">
+<h1 style="margin:0 0 12px;font-size:22px;line-height:1.3;font-weight:800;letter-spacing:-.01em">${esc(opts.heading)}</h1>
+<p style="margin:0;font-size:15px;line-height:1.65;color:${C.text}">${esc(opts.intro).replace(/\n/g, "<br>")}</p>
 ${rowsHtml}${opts.extraHtml ?? ""}${buttonHtml}
-${opts.outro ? `<p style="font-size:15px;line-height:1.6">${esc(opts.outro)}</p>` : ""}
+${opts.outro ? `<p style="margin:24px 0 0;font-size:15px;line-height:1.65">${esc(opts.outro)}</p>` : ""}
 </td></tr>
-<tr><td style="padding:16px 24px 24px;font-size:12px;color:#6b7a73;border-top:1px solid #e3e8e4">${esc(opts.footer)}${opts.address ? `<br>${esc(opts.address)}` : ""}</td></tr>
+<tr><td style="padding:20px 8px 0;font-size:12px;line-height:1.6;color:${C.muted};text-align:center">${esc(opts.footer)}${opts.address ? `<br>${esc(opts.address)}` : ""}</td></tr>
 </table></td></tr></table></body></html>`;
 
   const text = [
@@ -184,7 +194,7 @@ export async function sendBookingEmail(
   }
 
   const extraHtml = opts.message
-    ? `<div style="white-space:pre-wrap;background:#fbfaf5;border-left:3px solid #c9a24a;padding:12px 14px;margin:16px 0;font-size:15px">${esc(opts.message)}</div>`
+    ? `<div style="white-space:pre-wrap;background:#f6f8f7;border-left:3px solid #1b5e4a;border-radius:8px;padding:14px 16px;margin:20px 0;font-size:15px;line-height:1.6">${esc(opts.message)}</div>`
     : undefined;
 
   const { html, text } = layout({

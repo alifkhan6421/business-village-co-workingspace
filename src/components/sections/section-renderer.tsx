@@ -14,6 +14,7 @@ import { ResourceList, timeOptions, type ListSearchParams } from "@/components/r
 import {
   CtaSection,
   FaqSection,
+  TestimonialsSection,
   FeaturesSection,
   GallerySection,
   HeroSection,
@@ -255,6 +256,9 @@ export async function SectionRenderer({
         break;
       case "faq":
         out.push(<FaqSection key={key} section={s} locale={locale} />);
+        break;
+      case "testimonials":
+        out.push(<TestimonialsSection key={key} section={s} locale={locale} />);
         break;
       case "cta":
         out.push(<CtaSection key={key} section={s} locale={locale} address={address} />);

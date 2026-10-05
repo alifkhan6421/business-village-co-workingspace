@@ -1,5 +1,5 @@
 import Image from "next/image";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, Quote } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/lib/icons";
 import { localizeHref } from "@/lib/href";
@@ -7,7 +7,7 @@ import { sanitizeRichText } from "@/lib/sanitize";
 import { arr, str, type SectionView, type MediaView } from "@/lib/cms";
 import type { Locale } from "@/i18n/routing";
 import { cn } from "@/lib/utils";
-import { stockHero } from "@/lib/stock-photos";
+import { stockHero, stockResource } from "@/lib/stock-photos";
 
 type P = { section: SectionView; locale: Locale };
 
@@ -122,10 +122,11 @@ export function LegalTextSection({ section }: P) {
 
 export function ImageTextSection({ section }: P) {
   const right = str(section.settings.image_position) === "right";
+  const img = section.media ?? stockResource("workspace", section.id, 1200);
   return (
     <section className="mx-auto grid max-w-7xl items-center gap-10 px-4 py-16 sm:px-6 lg:grid-cols-2 lg:gap-16 lg:py-20">
       <div className={cn("relative aspect-[4/3] overflow-hidden rounded-3xl bg-muted", right && "lg:order-2")}>
-        {section.media ? <Image src={section.media.url} alt={section.media.alt} fill sizes="(max-width: 1024px) 100vw, 50vw" className="object-cover" /> : null}
+        <Image src={img.url} alt={img.alt} fill sizes="(max-width: 1024px) 100vw, 50vw" className="object-cover" unoptimized={"stock" in img} />
       </div>
       <div>
         {section.title ? <h2 className="text-3xl font-bold tracking-tight">{section.title}</h2> : null}
@@ -252,6 +253,39 @@ export function GallerySection({ section }: P) {
             <Image src={m.url} alt={m.alt} fill sizes="(max-width: 768px) 50vw, 33vw" className="object-cover" />
           </div>
         ))}
+      </div>
+    </section>
+  );
+}
+
+export function TestimonialsSection({ section }: P) {
+  const items = arr<{ quote?: string; name?: string; role?: string }>(section.data.items).filter((i) => i.quote);
+  if (!items.length) return null;
+  return (
+    <section className="py-16 sm:py-24" data-testid="testimonials">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6">
+        <SectionHeading title={section.title} subtitle={section.subtitle} />
+        <ul className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+          {items.map((item, i) => (
+            <li key={i}>
+              <figure className="flex h-full flex-col rounded-2xl border bg-card p-6 shadow-xs sm:p-7">
+                <Quote className="h-7 w-7 text-primary/30" aria-hidden="true" />
+                <blockquote className="mt-4 flex-1 text-[15px] leading-relaxed text-foreground/90">{item.quote}</blockquote>
+                {item.name || item.role ? (
+                  <figcaption className="mt-6 flex items-center gap-3 border-t pt-5">
+                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-secondary text-sm font-bold text-primary" aria-hidden="true">
+                      {(item.name ?? "?").trim().charAt(0).toUpperCase()}
+                    </span>
+                    <span className="min-w-0">
+                      {item.name ? <span className="block truncate text-sm font-semibold">{item.name}</span> : null}
+                      {item.role ? <span className="block truncate text-xs text-muted-foreground">{item.role}</span> : null}
+                    </span>
+                  </figcaption>
+                ) : null}
+              </figure>
+            </li>
+          ))}
+        </ul>
       </div>
     </section>
   );

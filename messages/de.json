@@ -807,7 +807,11 @@
       "uploading": "Wird hochgeladen …",
       "uploaded": "{count, plural, one {# Bild} other {# Bilder}} hochgeladen.",
       "removeHint": "Das Bild bleibt in der Mediathek erhalten.",
-      "unsaved": "Ungespeicherte Änderungen"
+      "unsaved": "Ungespeicherte Änderungen",
+      "dropTitle": "Bilder hierher ziehen oder klicken",
+      "dropHint": "JPG, PNG, WebP oder AVIF, mehrere gleichzeitig möglich",
+      "dragHint": "Ziehen Sie die Bilder, um die Reihenfolge zu ändern. Das Titelbild erscheint auf den Karten.",
+      "replace": "Bild ersetzen"
     },
     "amenities": {
       "title": "Ausstattung",
@@ -1047,7 +1051,8 @@
         "contact_form": "Kontaktformular",
         "map": "Karte",
         "imprint": "Impressum",
-        "custom": "Freier Inhalt"
+        "custom": "Freier Inhalt",
+        "testimonials": "Kundenstimmen"
       },
       "sectionActive": "Aktiv",
       "sectionInactive": "Ausgeblendet",
@@ -1111,7 +1116,10 @@
         "additionalText": "Zusätzlicher rechtlicher Text",
         "sharedFields": "Gemeinsame Angaben (beide Sprachen)",
         "localizedFields": "Sprachabhängige Inhalte",
-        "noFields": "Dieser Bereich wird automatisch aus der Datenbank befüllt. Sie können ihn ein- oder ausblenden und verschieben."
+        "noFields": "Dieser Bereich wird automatisch aus der Datenbank befüllt. Sie können ihn ein- oder ausblenden und verschieben.",
+        "quote": "Zitat",
+        "quoteName": "Name",
+        "quoteRole": "Firma oder Rolle"
       },
       "slugSystemHint": "Neue Seiten sind unter /p/<URL-Name> bzw. /seite/<URL-Name> erreichbar.",
       "deletePage": "Seite löschen"

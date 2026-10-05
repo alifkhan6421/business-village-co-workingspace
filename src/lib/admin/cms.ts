@@ -139,7 +139,7 @@ export async function addSection(pageId: string, type: string): Promise<ActionRe
   });
 }
 
-function parseItems(raw: string, kind: "cards" | "faq"): Json[] | null {
+function parseItems(raw: string, kind: "cards" | "faq" | "quotes"): Json[] | null {
   let arr: unknown;
   try {
     arr = JSON.parse(raw || "[]");
@@ -152,7 +152,10 @@ function parseItems(raw: string, kind: "cards" | "faq"): Json[] | null {
     if (typeof it !== "object" || !it) return null;
     const o = it as Record<string, unknown>;
     const s = (k: string, max: number) => (typeof o[k] === "string" ? (o[k] as string).trim().slice(0, max) : "");
-    if (kind === "faq") {
+    if (kind === "quotes") {
+      if (!s("quote", 1000)) continue;
+      out.push({ quote: s("quote", 1000), name: s("name", 120), role: s("role", 160) });
+    } else if (kind === "faq") {
       if (!s("question", 300) && !s("answer", 3000)) continue;
       out.push({ question: s("question", 300), answer: s("answer", 3000) });
     } else {
@@ -219,7 +222,7 @@ export async function saveSection(_: unknown, fd: FormData): Promise<ActionResul
       for (const f of cfg.local) {
         const name = `${l}_${f.key}`;
         if (f.kind === "rich") row.content = sanitizeRichText(String(fd.get(name) ?? ""));
-        else if (f.kind === "cards" || f.kind === "faq") {
+        else if (f.kind === "cards" || f.kind === "faq" || f.kind === "quotes") {
           const items = parseItems(String(fd.get(name) ?? "[]"), f.kind);
           if (!items) errors[name] = "invalidValue";
           else row.data.items = items;
