@@ -153,7 +153,7 @@ export function CancelBookingDialog({ bookingId }: { bookingId: string }) {
   );
 }
 
-function SimpleTextForm({
+export function SimpleTextForm({
   action,
   hidden,
   field,

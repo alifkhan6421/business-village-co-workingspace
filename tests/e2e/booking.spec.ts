@@ -1,76 +1,111 @@
 import { expect, test } from "@playwright/test";
-import { createHash, randomBytes } from "node:crypto";
-import { MEMBER, REF_PATTERN, berlin, db, deleteBookings, freeDay, login, pickSlot, waitForEmail } from "./helpers";
+import { MEMBER, REF_PATTERN, db, deleteBookings, freeDay, login, pickSlot, waitForEmail, weekdayAhead } from "./helpers";
 
 const created: string[] = [];
 test.afterAll(async () => deleteBookings(created));
 
+/** Removes booking requests (and their linked bookings) created by a test. */
+async function deleteRequests(references: string[]) {
+  if (!references.length) return;
+  await db.from("booking_requests").delete().in("reference", references);
+  await deleteBookings(references);
+}
+
+const requests: string[] = [];
+test.afterAll(async () => deleteRequests(requests));
+
 for (const c of [
-  { locale: "de", path: "/de/besprechungsraeume/berlin-room", slug: "berlin-room", subject: /Ihre Buchung im Business Village ist bestätigt/, cancelSubject: /Buchung storniert/, manage: /\/de\/buchung\/verwalten\// },
-  { locale: "en", path: "/en/meeting-rooms/focus-room", slug: "focus-room", subject: /Your Business Village booking is confirmed/, cancelSubject: /Booking cancelled/, manage: /\/en\/booking\/manage\// },
+  {
+    locale: "de", path: "/de/besprechungsraeume/berlin-room", room: "Berlin Room", gross: "248,00 €",
+    success: "Ihre Buchungsanfrage ist eingegangen. Unser Team prüft Ihre Anfrage und meldet sich mit einer Bestätigung bei Ihnen.",
+    subject: /Ihre Buchungsanfrage BV-\d{4}-\d{6} ist eingegangen/, form: /\/de\/buchungsanfrage/,
+  },
+  {
+    locale: "en", path: "/en/meeting-rooms/focus-room", room: "Focus Room", gross: "€248.00",
+    success: "Your booking request has been received. Our team will review it and contact you with confirmation.",
+    subject: /We have received your booking request BV-\d{4}-\d{6}/, form: /\/en\/booking-request/,
+  },
 ] as const) {
-  test(`guest books, receives email, manages and cancels (${c.locale})`, async ({ page }) => {
-    const { day } = await freeDay("room", c.slug, "10:00", "11:00");
-    const email = `e2e-guest-${Date.now()}@example.com`;
+  test(`guest sends a booking request from a room page, nothing is reserved (${c.locale})`, async ({ page }) => {
+    const day = weekdayAhead(12);
+    const email = `e2e-request-${c.locale}-${Date.now()}@example.com`;
 
+    // Room pages keep their details but show no availability and no direct booking.
     await page.goto(c.path, { waitUntil: "networkidle" });
-    await pickSlot(page, day, "10:00", "11:00", "continue-to-details");
-    await page.click("[data-testid=continue-to-details]");
-    await page.fill("#g-first", "Erika");
-    await page.fill("#g-last", "Muster");
-    await page.fill("#g-email", email);
-    await page.click("[data-testid=continue-to-review]");
-    await page.click("[data-testid=confirm-booking]");
+    await expect(page.locator("[data-testid=room-request-cta]")).toBeVisible();
+    await expect(page.locator(".fc")).toHaveCount(0);
+    await expect(page.locator("#bk-date")).toHaveCount(0);
+    await page.locator("[data-testid=room-request-cta] a").first().click();
+    await page.waitForURL(c.form);
+    await expect(page.locator("body")).toContainText(c.room);
 
-    await page.waitForURL(c.manage, { timeout: 30_000 });
-    const reference = (await page.textContent("[data-testid=booking-reference]"))!.trim();
-    created.push(reference);
+    await page.fill("#rq-date", day);
+    await page.selectOption("#rq-start", "09:00");
+    await page.selectOption("#rq-hours", "8");
+    await page.fill("#rq-participants", "9");
+    await expect(page.locator("[data-testid=estimate-gross]")).toHaveText(c.gross);
+    await page.fill("#rq-name", "Erika Muster");
+    await page.fill("#rq-email", email);
+    await page.fill("#rq-company", "Muster GmbH");
+    await page.click("[data-testid=submit-request]");
+
+    await expect(page.locator("[data-testid=request-success-text]")).toHaveText(c.success);
+    const reference = (await page.textContent("[data-testid=request-reference]"))!.trim();
+    requests.push(reference);
     expect(reference).toMatch(REF_PATTERN);
-    await expect(page.locator("[data-testid=booking-status]")).toHaveText(c.locale === "de" ? "Bestätigt" : "Confirmed");
-    await expect(page.locator("body")).toContainText("10:00");
 
-    // The confirmation email is in the booking's language and links to the same manage page.
+    // Stored as a pending request with a server-calculated price snapshot; no booking exists.
+    const { data: row } = await db.from("booking_requests").select("status, estimated_gross, estimated_net, estimated_vat, price_snapshot, duration_hours, participants, locale, assigned_room_id").eq("reference", reference).single();
+    expect(row!.status).toBe("pending");
+    expect(Number(row!.estimated_gross)).toBe(248);
+    expect(Number(row!.estimated_net) + Number(row!.estimated_vat)).toBeCloseTo(248, 2);
+    expect((row!.price_snapshot as { hourlyRateCents: number }).hourlyRateCents).toBe(3100);
+    expect(row!.assigned_room_id).toBeNull();
+    expect(row!.locale).toBe(c.locale);
+    const { count } = await db.from("bookings").select("id", { count: "exact", head: true }).eq("booking_reference", reference);
+    expect(count).toBe(0);
+
+    // Receipt to the customer in their language, notification with a dashboard link to the team.
     const mail = await waitForEmail(email, c.subject);
     expect(mail.html).toContain(reference);
-    const link = mail.html.match(/href="([^"]*\/(?:buchung\/verwalten|booking\/manage)\/[^"]+)"/)?.[1];
-    expect(link).toBeTruthy();
-    expect(new URL(link!.replace(/&amp;/g, "&")).pathname).toBe(new URL(page.url()).pathname);
-
-    // The token is stored hashed, never in plain text.
-    const token = new URL(page.url()).pathname.split("/").pop()!;
-    const { data: row } = await db.from("bookings").select("management_token_hash").eq("booking_reference", reference).single();
-    expect(row!.management_token_hash).toBeTruthy();
-    expect(row!.management_token_hash).not.toContain(token);
-
-    // Cancel through the manage link.
-    await page.click("[data-testid=cancel-booking]");
-    await page.getByRole("alertdialog").getByRole("button", { name: c.locale === "de" ? "Buchung stornieren" : "Cancel booking" }).click();
-    await expect(page.locator("[data-testid=booking-status]")).toHaveText(c.locale === "de" ? "Storniert" : "Cancelled");
-    await waitForEmail(email, c.cancelSubject);
+    const team = await waitForEmail("booking@business-village.de", new RegExp(`Neue Buchungsanfrage ${reference}`));
+    expect(team.html).toMatch(/\/de\/admin\/requests\/[0-9a-f-]{36}/);
   });
 }
 
-test("taken slot is refused and shown as booked", async ({ page }) => {
-  const { day, resourceId } = await freeDay("room", "munich-room", "13:00", "16:00");
-  const { data, error } = await db.rpc("create_guest_booking", {
-    p_type: "room", p_resource_id: resourceId,
-    p_start: berlin(day, "13:00"), p_end: berlin(day, "16:00"),
-    p_first_name: "Block", p_last_name: "Er", p_email: `e2e-blocker-${Date.now()}@example.com`,
-    p_phone: null, p_company: null, p_purpose: null, p_attendees: 1, p_locale: "de", p_token_hash: createHash("sha256").update(randomBytes(32)).digest("hex"),
+test("the public form refuses dates in the past", async ({ page }) => {
+  await page.goto("/en/booking-request?hours=3&participants=4", { waitUntil: "networkidle" });
+  await expect(page.locator("[data-testid=estimate-gross]")).toHaveText("€63.00");
+  await page.evaluate(() => {
+    const d = document.querySelector<HTMLInputElement>("#rq-date")!;
+    d.removeAttribute("min");
   });
-  expect(error).toBeNull();
-  created.push(data![0].booking_reference);
+  await page.fill("#rq-date", "2020-01-06");
+  await page.fill("#rq-name", "Past Person");
+  await page.fill("#rq-email", `e2e-past-${Date.now()}@example.com`);
+  await page.click("[data-testid=submit-request]");
+  await expect(page.getByText("This date is in the past.")).toBeVisible();
+  await expect(page.locator("[data-testid=request-success]")).toHaveCount(0);
+});
 
-  await page.goto("/en/meeting-rooms/munich-room", { waitUntil: "networkidle" });
-  await pickSlot(page, day, "14:00", "15:00", "continue-to-details");
-  await page.click("[data-testid=continue-to-details]");
-  await page.fill("#g-first", "Late");
-  await page.fill("#g-last", "Comer");
-  await page.fill("#g-email", `e2e-late-${Date.now()}@example.com`);
-  await page.click("[data-testid=continue-to-review]");
-  await page.click("[data-testid=confirm-booking]");
-  await expect(page.getByText(/just taken|already been booked/i).first()).toBeVisible();
-  expect(page.url()).toContain("/meeting-rooms/munich-room");
+test("pricing page: 9 people for 8 hours cost €248, larger groups get packages", async ({ page }) => {
+  await page.goto("/de/preise", { waitUntil: "networkidle" });
+  await expect(page.locator("[data-testid=hourly-plan]").first()).toContainText("31,00 €");
+  await page.fill("#pc-hours", "8");
+  await page.fill("#pc-participants", "9");
+  await expect(page.locator("[data-testid=estimate-gross]")).toHaveText("248,00 €");
+  await page.fill("#pc-participants", "18");
+  await expect(page.locator("[data-testid=estimate-gross]")).toHaveText("395,00 €");
+  await expect(page.locator("[data-testid=estimate-type]")).toHaveText("Schätzung");
+  await page.click("[data-testid=calculator-request]");
+  await page.waitForURL(/\/de\/buchungsanfrage\?.*hours=8.*participants=18/);
+  await expect(page.locator("[data-testid=estimate-gross]")).toHaveText("395,00 €");
+
+  await page.goto("/en/pricing", { waitUntil: "networkidle" });
+  await expect(page.locator("h1")).toBeVisible();
+  await page.fill("#pc-hours", "8");
+  await page.fill("#pc-participants", "9");
+  await expect(page.locator("[data-testid=estimate-gross]")).toHaveText("€248.00");
 });
 
 test("member books a desk, sees it in the account and cancels it", async ({ page }) => {

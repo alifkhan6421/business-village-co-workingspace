@@ -5,6 +5,7 @@ type Variant = "success" | "warning" | "danger" | "info" | "muted" | "secondary"
 const VARIANTS: Record<string, Record<string, Variant>> = {
   booking: { pending: "warning", confirmed: "success", cancelled: "danger", completed: "muted", no_show: "secondary" },
   resource: { available: "success", maintenance: "warning", disabled: "muted" },
+  request: { pending: "warning", under_review: "info", alternative_proposed: "neutral", confirmed: "success", rejected: "danger", cancelled: "muted", completed: "secondary" },
   inquiry: { new: "info", in_progress: "neutral", resolved: "success" },
   email: { pending: "warning", sent: "success", failed: "danger" },
   page: { draft: "muted", published: "success" },

@@ -16,8 +16,9 @@ export default async function AdminLayout({ children, params }: { children: Reac
   setRequestLocale(locale);
   const { profile } = await requireAdminPage(locale);
   const supabase = await createClient();
-  const [{ count: newInquiries }, settings] = await Promise.all([
+  const [{ count: newInquiries }, { count: openRequests }, settings] = await Promise.all([
     supabase.from("contact_requests").select("id", { count: "exact", head: true }).eq("status", "new"),
+    supabase.from("booking_requests").select("id", { count: "exact", head: true }).in("status", ["pending", "under_review"]),
     getSiteSettings(locale),
   ]);
   return (
@@ -25,7 +26,7 @@ export default async function AdminLayout({ children, params }: { children: Reac
       userName={profile.full_name || profile.email}
       userEmail={profile.email}
       brand={<Brand logo={settings.logo} name={settings.company_name} />}
-      badges={{ inquiries: newInquiries ?? 0 }}
+      badges={{ inquiries: newInquiries ?? 0, requests: openRequests ?? 0 }}
       siteHref={localizeHref("/", locale)}
     >
       {children}

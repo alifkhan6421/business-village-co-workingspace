@@ -137,6 +137,80 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"booking_request_events": {
+                  Row: {
+                    "actor_id": string | null,"created_at": string,"event_type": string,"from_status": string | null,"id": string,"metadata": NonNullable<Json>,"note": string | null,"request_id": string,"to_status": string | null
+                  }
+                  Insert: {
+                    "actor_id"?: string | null,"created_at"?: string,"event_type": string,"from_status"?: string | null,"id"?: string,"metadata"?: NonNullable<Json>,"note"?: string | null,"request_id": string,"to_status"?: string | null
+                  }
+                  Update: {
+                    "actor_id"?: string | null,"created_at"?: string,"event_type"?: string,"from_status"?: string | null,"id"?: string,"metadata"?: NonNullable<Json>,"note"?: string | null,"request_id"?: string,"to_status"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "booking_request_events_actor_id_fkey"
+      columns: ["actor_id"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "booking_request_events_request_id_fkey"
+      columns: ["request_id"]
+isOneToOne: false
+      referencedRelation: "booking_requests"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"booking_requests": {
+                  Row: {
+                    "alternative_end_at": string | null,"alternative_message": string | null,"alternative_start_at": string | null,"assigned_room_id": string | null,"booking_id": string | null,"contact_company": string | null,"contact_email": string,"contact_name": string,"contact_phone": string | null,"created_at": string,"duration_hours": number,"end_at": string,"estimated_gross": number | null,"estimated_net": number | null,"estimated_vat": number | null,"guest_id": string | null,"id": string,"locale": string,"message": string | null,"participants": number,"preferred_room_id": string | null,"price_adjusted": boolean,"price_adjustment_reason": string | null,"price_snapshot": Json | null,"quote_gross": number | null,"quote_net": number | null,"quote_snapshot": Json | null,"quote_vat": number | null,"reference": string,"start_at": string,"status": string,"status_changed_at": string,"status_changed_by": string | null,"updated_at": string,"user_id": string | null
+                  }
+                  Insert: {
+                    "alternative_end_at"?: string | null,"alternative_message"?: string | null,"alternative_start_at"?: string | null,"assigned_room_id"?: string | null,"booking_id"?: string | null,"contact_company"?: string | null,"contact_email": string,"contact_name": string,"contact_phone"?: string | null,"created_at"?: string,"duration_hours": number,"end_at": string,"estimated_gross"?: number | null,"estimated_net"?: number | null,"estimated_vat"?: number | null,"guest_id"?: string | null,"id"?: string,"locale"?: string,"message"?: string | null,"participants": number,"preferred_room_id"?: string | null,"price_adjusted"?: boolean,"price_adjustment_reason"?: string | null,"price_snapshot"?: Json | null,"quote_gross"?: number | null,"quote_net"?: number | null,"quote_snapshot"?: Json | null,"quote_vat"?: number | null,"reference": string,"start_at": string,"status"?: string,"status_changed_at"?: string,"status_changed_by"?: string | null,"updated_at"?: string,"user_id"?: string | null
+                  }
+                  Update: {
+                    "alternative_end_at"?: string | null,"alternative_message"?: string | null,"alternative_start_at"?: string | null,"assigned_room_id"?: string | null,"booking_id"?: string | null,"contact_company"?: string | null,"contact_email"?: string,"contact_name"?: string,"contact_phone"?: string | null,"created_at"?: string,"duration_hours"?: number,"end_at"?: string,"estimated_gross"?: number | null,"estimated_net"?: number | null,"estimated_vat"?: number | null,"guest_id"?: string | null,"id"?: string,"locale"?: string,"message"?: string | null,"participants"?: number,"preferred_room_id"?: string | null,"price_adjusted"?: boolean,"price_adjustment_reason"?: string | null,"price_snapshot"?: Json | null,"quote_gross"?: number | null,"quote_net"?: number | null,"quote_snapshot"?: Json | null,"quote_vat"?: number | null,"reference"?: string,"start_at"?: string,"status"?: string,"status_changed_at"?: string,"status_changed_by"?: string | null,"updated_at"?: string,"user_id"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "booking_requests_assigned_room_id_fkey"
+      columns: ["assigned_room_id"]
+isOneToOne: false
+      referencedRelation: "rooms"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "booking_requests_booking_id_fkey"
+      columns: ["booking_id"]
+isOneToOne: true
+      referencedRelation: "bookings"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "booking_requests_guest_id_fkey"
+      columns: ["guest_id"]
+isOneToOne: false
+      referencedRelation: "guests"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "booking_requests_preferred_room_id_fkey"
+      columns: ["preferred_room_id"]
+isOneToOne: false
+      referencedRelation: "rooms"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "booking_requests_status_changed_by_fkey"
+      columns: ["status_changed_by"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "booking_requests_user_id_fkey"
+      columns: ["user_id"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"bookings": {
                   Row: {
                     "attendees": number,"booking_reference": string,"booking_type": string,"cancellation_reason": string | null,"cancelled_at": string | null,"cancelled_by": string | null,"created_at": string,"created_by": string | null,"end_at": string,"guest_id": string | null,"id": string,"locale": string,"management_token_hash": string | null,"purpose": string | null,"room_id": string | null,"source": string,"start_at": string,"status": string,"updated_at": string,"user_id": string | null,"workspace_id": string | null
@@ -201,13 +275,13 @@ isOneToOne: false
                   ]
                 },"email_logs": {
                   Row: {
-                    "body_html": string | null,"created_at": string,"email_type": string,"error_message": string | null,"id": string,"locale": string | null,"provider": string,"provider_message_id": string | null,"recipient": string,"related_booking_id": string | null,"related_contact_request_id": string | null,"status": string,"subject": string,"updated_at": string
+                    "body_html": string | null,"created_at": string,"email_type": string,"error_message": string | null,"id": string,"locale": string | null,"provider": string,"provider_message_id": string | null,"recipient": string,"related_booking_id": string | null,"related_booking_request_id": string | null,"related_contact_request_id": string | null,"status": string,"subject": string,"updated_at": string
                   }
                   Insert: {
-                    "body_html"?: string | null,"created_at"?: string,"email_type": string,"error_message"?: string | null,"id"?: string,"locale"?: string | null,"provider"?: string,"provider_message_id"?: string | null,"recipient": string,"related_booking_id"?: string | null,"related_contact_request_id"?: string | null,"status"?: string,"subject": string,"updated_at"?: string
+                    "body_html"?: string | null,"created_at"?: string,"email_type": string,"error_message"?: string | null,"id"?: string,"locale"?: string | null,"provider"?: string,"provider_message_id"?: string | null,"recipient": string,"related_booking_id"?: string | null,"related_booking_request_id"?: string | null,"related_contact_request_id"?: string | null,"status"?: string,"subject": string,"updated_at"?: string
                   }
                   Update: {
-                    "body_html"?: string | null,"created_at"?: string,"email_type"?: string,"error_message"?: string | null,"id"?: string,"locale"?: string | null,"provider"?: string,"provider_message_id"?: string | null,"recipient"?: string,"related_booking_id"?: string | null,"related_contact_request_id"?: string | null,"status"?: string,"subject"?: string,"updated_at"?: string
+                    "body_html"?: string | null,"created_at"?: string,"email_type"?: string,"error_message"?: string | null,"id"?: string,"locale"?: string | null,"provider"?: string,"provider_message_id"?: string | null,"recipient"?: string,"related_booking_id"?: string | null,"related_booking_request_id"?: string | null,"related_contact_request_id"?: string | null,"status"?: string,"subject"?: string,"updated_at"?: string
                   }
                   Relationships: [
                     {
@@ -215,6 +289,12 @@ isOneToOne: false
       columns: ["related_booking_id"]
 isOneToOne: false
       referencedRelation: "bookings"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "email_logs_related_booking_request_id_fkey"
+      columns: ["related_booking_request_id"]
+isOneToOne: false
+      referencedRelation: "booking_requests"
       referencedColumns: ["id"]
     },{
       foreignKeyName: "email_logs_related_contact_request_id_fkey"
@@ -363,6 +443,76 @@ isOneToOne: false
       referencedRelation: "media"
       referencedColumns: ["id"]
     }
+                  ]
+                },"price_hourly_plans": {
+                  Row: {
+                    "active": boolean,"created_at": string,"description_de": string,"description_en": string,"display_order": number,"extra_hour_increment": number,"id": string,"max_hours": number,"max_participants": number,"min_hours": number,"min_participants": number,"name_de": string,"name_en": string,"price_type": string,"room_id": string | null,"updated_at": string
+                  }
+                  Insert: {
+                    "active"?: boolean,"created_at"?: string,"description_de"?: string,"description_en"?: string,"display_order"?: number,"extra_hour_increment"?: number,"id"?: string,"max_hours"?: number,"max_participants"?: number,"min_hours"?: number,"min_participants"?: number,"name_de": string,"name_en": string,"price_type"?: string,"room_id"?: string | null,"updated_at"?: string
+                  }
+                  Update: {
+                    "active"?: boolean,"created_at"?: string,"description_de"?: string,"description_en"?: string,"display_order"?: number,"extra_hour_increment"?: number,"id"?: string,"max_hours"?: number,"max_participants"?: number,"min_hours"?: number,"min_participants"?: number,"name_de"?: string,"name_en"?: string,"price_type"?: string,"room_id"?: string | null,"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "price_hourly_plans_room_id_fkey"
+      columns: ["room_id"]
+isOneToOne: false
+      referencedRelation: "rooms"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"price_hourly_tiers": {
+                  Row: {
+                    "active": boolean,"created_at": string,"hourly_rate": number,"hours": number,"id": string,"plan_id": string,"updated_at": string
+                  }
+                  Insert: {
+                    "active"?: boolean,"created_at"?: string,"hourly_rate": number,"hours": number,"id"?: string,"plan_id": string,"updated_at"?: string
+                  }
+                  Update: {
+                    "active"?: boolean,"created_at"?: string,"hourly_rate"?: number,"hours"?: number,"id"?: string,"plan_id"?: string,"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "price_hourly_tiers_plan_id_fkey"
+      columns: ["plan_id"]
+isOneToOne: false
+      referencedRelation: "price_hourly_plans"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"price_packages": {
+                  Row: {
+                    "active": boolean,"created_at": string,"description_de": string,"description_en": string,"display_order": number,"duration_hours": number | null,"duration_label_de": string,"duration_label_en": string,"duration_type": string,"extra_person_price": number | null,"id": string,"max_extra_participants": number | null,"max_participants": number | null,"min_participants": number,"name_de": string,"name_en": string,"price": number,"price_type": string,"pricing_mode": string,"room_id": string | null,"updated_at": string
+                  }
+                  Insert: {
+                    "active"?: boolean,"created_at"?: string,"description_de"?: string,"description_en"?: string,"display_order"?: number,"duration_hours"?: number | null,"duration_label_de"?: string,"duration_label_en"?: string,"duration_type"?: string,"extra_person_price"?: number | null,"id"?: string,"max_extra_participants"?: number | null,"max_participants"?: number | null,"min_participants"?: number,"name_de": string,"name_en": string,"price": number,"price_type"?: string,"pricing_mode"?: string,"room_id"?: string | null,"updated_at"?: string
+                  }
+                  Update: {
+                    "active"?: boolean,"created_at"?: string,"description_de"?: string,"description_en"?: string,"display_order"?: number,"duration_hours"?: number | null,"duration_label_de"?: string,"duration_label_en"?: string,"duration_type"?: string,"extra_person_price"?: number | null,"id"?: string,"max_extra_participants"?: number | null,"max_participants"?: number | null,"min_participants"?: number,"name_de"?: string,"name_en"?: string,"price"?: number,"price_type"?: string,"pricing_mode"?: string,"room_id"?: string | null,"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "price_packages_room_id_fkey"
+      columns: ["room_id"]
+isOneToOne: false
+      referencedRelation: "rooms"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"pricing_settings": {
+                  Row: {
+                    "display_mode": string,"id": number,"note_de": string,"note_en": string,"prices_include_vat": boolean,"show_vat_breakdown": boolean,"updated_at": string,"vat_rate": number
+                  }
+                  Insert: {
+                    "display_mode"?: string,"id"?: number,"note_de"?: string,"note_en"?: string,"prices_include_vat"?: boolean,"show_vat_breakdown"?: boolean,"updated_at"?: string,"vat_rate"?: number
+                  }
+                  Update: {
+                    "display_mode"?: string,"id"?: number,"note_de"?: string,"note_en"?: string,"prices_include_vat"?: boolean,"show_vat_breakdown"?: boolean,"updated_at"?: string,"vat_rate"?: number
+                  }
+                  Relationships: [
+                    
                   ]
                 },"private_settings": {
                   Row: {
@@ -590,7 +740,13 @@ isOneToOne: false
             [_ in never]: never
           }
           Functions: {
-            "admin_cancel_booking":
+            "admin_add_booking_request_note":
+{ Args: { "p_note": string,"p_request_id": string }; Returns: undefined
+                           },
+"admin_adjust_booking_request_price":
+{ Args: { "p_gross": number,"p_net": number,"p_reason": string,"p_request_id": string,"p_vat": number }; Returns: undefined
+                           },
+"admin_cancel_booking":
 { Args: { "p_booking_id": string,"p_reason"?: string }; Returns: string
                            },
 "admin_create_block":
@@ -606,8 +762,16 @@ isOneToOne: false
 "admin_delete_block":
 { Args: { "p_block_id": string }; Returns: undefined
                            },
+"admin_room_availability":
+{ Args: { "p_end": string,"p_start": string }; Returns: {
+              "capacity": number,"conflict": string,"conflict_reference": string,"name": string,"room_id": string,"status": string
+            }[]
+                           },
 "admin_set_amenities":
 { Args: { "p_amenity_ids": (string)[],"p_resource_id": string,"p_type": string }; Returns: undefined
+                           },
+"admin_set_booking_request_status":
+{ Args: { "p_alt_end"?: string,"p_alt_start"?: string,"p_note"?: string,"p_request_id": string,"p_status": string }; Returns: string
                            },
 "admin_set_booking_token":
 { Args: { "p_booking_id": string,"p_token_hash": string }; Returns: undefined
@@ -620,6 +784,9 @@ isOneToOne: false
                            },
 "admin_update_booking":
 { Args: { "p_attendees": number,"p_booking_id": string,"p_end": string,"p_purpose": string,"p_resource_id": string,"p_start": string,"p_status": string,"p_type": string }; Returns: undefined
+                           },
+"admin_update_booking_request":
+{ Args: { "p_assigned_room_id": string,"p_duration_hours": number,"p_end": string,"p_participants": number,"p_quote_gross": number,"p_quote_net": number,"p_quote_snapshot": Json,"p_quote_vat": number,"p_request_id": string,"p_start": string }; Returns: undefined
                            },
 "admin_utilization":
 { Args: { "p_from": string,"p_to": string }; Returns: {
@@ -661,6 +828,9 @@ isOneToOne: false
 "log_admin_activity":
 { Args: { "p_action": string,"p_entity_id": string,"p_entity_type": string,"p_metadata"?: Json }; Returns: undefined
                            },
+"log_booking_request_email":
+{ Args: { "p_actor": string,"p_kind": string,"p_ok": boolean,"p_request_id": string }; Returns: undefined
+                           },
 "media_usage":
 { Args: { "p_media_id": string }; Returns: {
               "label": string,"usage_id": string,"usage_type": string
@@ -673,6 +843,11 @@ isOneToOne: false
                            },
 "next_booking_reference":
 { Args: Record<PropertyKey, never>; Returns: string
+                           },
+"submit_booking_request":
+{ Args: { "p_company": string,"p_duration_hours": number,"p_email": string,"p_end": string,"p_full_name": string,"p_gross": number,"p_locale": string,"p_message": string,"p_net": number,"p_participants": number,"p_phone": string,"p_preferred_room_id": string,"p_price_snapshot": Json,"p_start": string,"p_user_id": string,"p_vat": number }; Returns: {
+              "reference": string,"request_id": string
+            }[]
                            }
           }
           Enums: {

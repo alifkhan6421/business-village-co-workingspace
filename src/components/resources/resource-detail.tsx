@@ -42,6 +42,12 @@ export async function ResourceDetail({
   const hours = pickLocalized(settings as unknown as Record<string, unknown>, "opening_hours", locale);
   const images = resource.images.length ? resource.images : [{ id: "stock", ...stockResource(type, resource.slug, 1600) }];
   const bookable = resource.status === "available";
+  // Meeting rooms: details only. No availability calendar, no direct booking;
+  // every button opens the central booking request form.
+  const isRoom = type === "room";
+  const requestHref = `${localizeHref("/booking-request", locale)}?room=${encodeURIComponent(resource.slug)}`;
+  const ctaHref = isRoom ? requestHref : "#booking";
+  const ctaLabel = isRoom ? t("requestBooking") : t("bookThis");
   const meta = [resource.floor, resource.zone].filter(Boolean).join(" · ");
 
   const prices = [
@@ -144,9 +150,9 @@ export async function ResourceDetail({
                 <li key={a.id} className="flex items-center gap-2.5"><Icon name={a.icon} className="h-4 w-4 text-muted-foreground" /> {a.name}</li>
               ))}
             </ul>
-            {bookable ? (
+            {bookable || isRoom ? (
               <Button asChild size="lg" className="w-full">
-                <a href="#booking"><CalendarCheck /> {t("bookThis")}</a>
+                <a href={ctaHref} data-testid={isRoom ? "request-booking" : undefined}><CalendarCheck /> {ctaLabel}</a>
               </Button>
             ) : (
               <p className="text-sm text-muted-foreground">{t("statusNotBookable", { status: ts(`resource.${resource.status}`) })}</p>
@@ -155,7 +161,7 @@ export async function ResourceDetail({
         </aside>
       </div>
 
-      {bookable ? (
+      {bookable || isRoom ? (
         <div className="fixed inset-x-0 bottom-0 z-30 flex items-center justify-between gap-4 border-t bg-background/95 px-4 pt-3 shadow-[0_-8px_24px_-12px_rgb(16_32_26/0.18)] backdrop-blur pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] lg:hidden">
           <div className="min-w-0">
             {prices.length ? (
@@ -168,31 +174,46 @@ export async function ResourceDetail({
             <p className="truncate text-xs text-muted-foreground">{resource.name} · {t("upToPersons", { count: resource.capacity })}</p>
           </div>
           <Button asChild className="shrink-0">
-            <a href="#booking">{t("bookThis")}</a>
+            <a href={ctaHref}>{ctaLabel}</a>
           </Button>
         </div>
       ) : null}
 
-      <section className="mt-16 scroll-mt-20 border-t pt-12" id="booking">
-        <h2 className="text-2xl font-bold tracking-tight">{t("availabilityCalendar")}</h2>
-        <p className="mb-8 mt-1 text-muted-foreground">{t("calendarHint")}</p>
-        {!bookable ? (
-          <FormAlert kind="info">{t("statusNotBookable", { status: ts(`resource.${resource.status}`) })}</FormAlert>
-        ) : (
-          <BookingWidget
-            resource={{ id: resource.id, type, name: resource.name, capacity: resource.capacity, priceHourly: resource.priceHourly, priceDaily: resource.priceDaily }}
-            settings={{
-              dayStart: settings.booking_day_start.slice(0, 5),
-              dayEnd: settings.booking_day_end.slice(0, 5),
-              slotMinutes: settings.booking_slot_minutes,
-              weekdays: settings.booking_weekdays,
-            }}
-            user={current ? { name: current.profile.full_name ?? "", email: current.profile.email } : null}
-            initial={{ date: q("date"), start: q("start"), end: q("end") }}
-            returnPath={localizeHref(`${base}/${resource.slug}`, locale)}
-          />
-        )}
-      </section>
+      {isRoom ? (
+        <section className="mt-16 rounded-2xl bg-secondary/60 p-6 sm:p-10" data-testid="room-request-cta">
+          <h2 className="text-2xl font-bold tracking-tight">{t("requestTitle")}</h2>
+          <p className="mt-2 max-w-2xl text-foreground/75">{t("requestText")}</p>
+          <div className="mt-6 flex flex-wrap gap-3">
+            <Button asChild size="lg">
+              <a href={requestHref}><CalendarCheck /> {t("requestBooking")}</a>
+            </Button>
+            <Button asChild size="lg" variant="outline">
+              <a href={localizeHref("/pricing", locale)}>{t("viewPricing")}</a>
+            </Button>
+          </div>
+        </section>
+      ) : (
+        <section className="mt-16 scroll-mt-20 border-t pt-12" id="booking">
+          <h2 className="text-2xl font-bold tracking-tight">{t("availabilityCalendar")}</h2>
+          <p className="mb-8 mt-1 text-muted-foreground">{t("calendarHint")}</p>
+          {!bookable ? (
+            <FormAlert kind="info">{t("statusNotBookable", { status: ts(`resource.${resource.status}`) })}</FormAlert>
+          ) : (
+            <BookingWidget
+              resource={{ id: resource.id, type, name: resource.name, capacity: resource.capacity, priceHourly: resource.priceHourly, priceDaily: resource.priceDaily }}
+              settings={{
+                dayStart: settings.booking_day_start.slice(0, 5),
+                dayEnd: settings.booking_day_end.slice(0, 5),
+                slotMinutes: settings.booking_slot_minutes,
+                weekdays: settings.booking_weekdays,
+              }}
+              user={current ? { name: current.profile.full_name ?? "", email: current.profile.email } : null}
+              initial={{ date: q("date"), start: q("start"), end: q("end") }}
+              returnPath={localizeHref(`${base}/${resource.slug}`, locale)}
+            />
+          )}
+        </section>
+      )}
     </div>
   );
 }

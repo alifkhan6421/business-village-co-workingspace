@@ -25,6 +25,9 @@ export async function ResourceCard({
   const ts = await getTranslations({ locale, namespace: "status" });
   const base = resource.type === "workspace" ? "/coworking" : "/meeting-rooms";
   const href = localizeHref(`${base}/${resource.slug}`, locale) + (bookQuery ? `?${bookQuery}` : "");
+  // Meeting rooms are never booked directly: every room leads to the central request form.
+  const isRoom = resource.type === "room";
+  const bookHref = isRoom ? `${localizeHref("/booking-request", locale)}?room=${encodeURIComponent(resource.slug)}` : `${href}#booking`;
   const cover = resource.cover ?? stockResource(resource.type, resource.slug, 800);
   const amenities = resource.amenities.slice(0, 4).map((a) => a.name);
   const rest = resource.amenities.length - amenities.length;
@@ -95,7 +98,7 @@ export async function ResourceCard({
             <a href={href}>{t("viewDetails")}</a>
           </Button>
           <Button asChild size="sm" disabled={availability === false}>
-            <a href={`${href}#booking`}>{t("bookNow")}</a>
+            <a href={bookHref} data-testid={isRoom ? "request-booking" : undefined}>{isRoom ? t("requestBooking") : t("bookNow")}</a>
           </Button>
         </div>
       </div>

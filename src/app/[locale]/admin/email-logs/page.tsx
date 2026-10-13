@@ -11,7 +11,7 @@ import { emailConfigured } from "@/lib/email/send";
 import type { Locale } from "@/i18n/routing";
 
 const PER_PAGE = 30;
-const TYPES = ["welcome", "verify_email", "password_reset", "booking_confirmation", "guest_booking_confirmation", "booking_updated", "booking_cancelled", "contact_confirmation", "contact_admin_notification", "booking_admin_notification", "booking_message"];
+const TYPES = ["welcome", "verify_email", "password_reset", "booking_confirmation", "guest_booking_confirmation", "booking_updated", "booking_cancelled", "contact_confirmation", "contact_admin_notification", "booking_admin_notification", "booking_message", "request_received", "request_admin_notification", "request_confirmed", "request_rejected", "request_cancelled", "request_alternative", "request_message"];
 
 export default async function EmailLogsPage({ params, searchParams }: { params: Promise<{ locale: string }>; searchParams: Promise<{ q?: string; status?: string; type?: string; page?: string }> }) {
   const locale = (await params).locale as Locale;

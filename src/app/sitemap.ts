@@ -18,6 +18,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     if (p.noindex) continue;
     paths.push({ path: p.slug === "home" ? "/" : p.is_system ? `/${p.slug}` : `/p/${p.slug}`, updated: p.updated_at });
   }
+  const now = new Date().toISOString();
+  paths.push({ path: "/pricing", updated: now }, { path: "/booking-request", updated: now });
   for (const w of ws.data ?? []) paths.push({ path: `/coworking/${w.slug}`, updated: w.updated_at });
   for (const r of rooms.data ?? []) paths.push({ path: `/meeting-rooms/${r.slug}`, updated: r.updated_at });
   return paths.map(({ path, updated }) => ({

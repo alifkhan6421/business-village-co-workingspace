@@ -11,11 +11,13 @@ export async function ListFilters({
   placeholder,
   filters = [],
   hidden = {},
+  dates = [],
 }: {
   q?: string;
   placeholder?: string;
   filters?: { name: string; value: string; label: string; options: { value: string; label: string }[] }[];
   hidden?: Record<string, string>;
+  dates?: { name: string; value?: string; label: string }[];
 }) {
   const t = await getTranslations("common");
   return (
@@ -27,6 +29,9 @@ export async function ListFilters({
         <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <Input name="q" defaultValue={q} placeholder={placeholder ?? t("searchPlaceholder")} className="pl-9" aria-label={t("search")} />
       </div>
+      {dates.map((d) => (
+        <Input key={d.name} type="date" name={d.name} defaultValue={d.value} aria-label={d.label} title={d.label} className="sm:w-44" />
+      ))}
       {filters.map((f) => (
         <NativeSelect key={f.name} name={f.name} defaultValue={f.value} aria-label={f.label} className="sm:w-48 [&:last-of-type:nth-of-type(odd)]:col-span-2">
           {f.options.map((o) => (

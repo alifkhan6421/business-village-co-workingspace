@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
+import { localizeHref } from "@/lib/href";
 import { getFormatter, getTranslations, setRequestLocale } from "next-intl/server";
 import { EmptyState } from "@/components/ui/states";
 import { ResourceCard } from "@/components/resources/resource-card";
@@ -26,6 +28,15 @@ export default async function SearchPage({ params, searchParams }: Props) {
   const people = Math.max(1, Number(q.people) || 1);
   const from = q.date && q.start ? berlinToUtc(q.date, q.start) : null;
   const to = q.date && q.end ? berlinToUtc(q.date, q.end) : null;
+
+  // Meeting room availability is internal: room searches become a booking request.
+  if (type === "room") {
+    const params = new URLSearchParams({ participants: String(Math.min(people, 1000)) });
+    if (q.date && from) params.set("date", q.date);
+    if (q.start && from) params.set("start", q.start);
+    if (from && to && to > from) params.set("hours", String(Math.max(1, Math.round((+to - +from) / 3600000))));
+    redirect(`${localizeHref("/booking-request", locale)}?${params}`);
+  }
 
   let content: React.ReactNode;
   if (!from || !to || to <= from) {
@@ -56,7 +67,7 @@ export default async function SearchPage({ params, searchParams }: Props) {
   return (
     <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6">
       <h1 className="mb-2 text-3xl font-extrabold tracking-tight sm:text-4xl">
-        {t("searchResultsTitle")} · {type === "room" ? t("typeRoom") : t("typeWorkspace")}
+        {t("searchResultsTitle")} · {t("typeWorkspace")}
       </h1>
       {content}
     </div>

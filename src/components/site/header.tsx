@@ -20,7 +20,7 @@ export async function SiteHeader({ locale }: { locale: Locale }) {
   ]);
   const items = nav.header.map((i) => ({ ...i, href: localizeHref(i.href, locale) }));
   const banner = pickLocalized(settings as unknown as Record<string, unknown>, "announcement_banner", locale);
-  const bookHref = localizeHref("/coworking", locale);
+  const bookHref = localizeHref("/booking-request", locale);
   const loginHref = localizeHref("/login", locale);
   const signupHref = localizeHref("/signup", locale);
 
@@ -52,13 +52,13 @@ export async function SiteHeader({ locale }: { locale: Locale }) {
             </Button>
           )}
           <Button asChild size="sm" className="hidden sm:inline-flex">
-            <a href={bookHref}>{t("bookNow")}</a>
+            <a href={bookHref}>{t("requestBooking")}</a>
           </Button>
           <MobileNav
             title={settings.company_name}
             items={items.map((i) => ({ ...i, active: false }))}
             bookHref={bookHref}
-            bookLabel={t("bookNow")}
+            bookLabel={t("requestBooking")}
             auth={current ? null : { loginHref, loginLabel: t("login"), signupHref, signupLabel: t("signup") }}
           />
         </div>
