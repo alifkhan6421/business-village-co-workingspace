@@ -1,5 +1,7 @@
 import "server-only";
+import { createClient } from "@supabase/supabase-js";
 import { createAdminClient } from "@/lib/supabase/admin";
+import type { Database } from "@/lib/supabase/database.types";
 import type { Tables } from "@/lib/supabase/database.types";
 import { toCents, type PricingConfig, type PricingPackage, type PricingSettings } from "./calc";
 
@@ -46,10 +48,15 @@ export function mapPackage(p: PackageRow): PricingPackage {
 /**
  * Reads the pricing rules from the database on every call (no caching), so a
  * change in the admin panel applies to the next calculation without a deploy.
- * `includeInactive` is for admin recalculations only.
+ * Public reads use the anon key (RLS exposes active packages and tiers only);
+ * `includeInactive` is for admin recalculations and uses the service role.
  */
 export async function loadPricingConfig({ includeInactive = false } = {}): Promise<PricingConfig> {
-  const admin = createAdminClient();
+  const admin = includeInactive
+    ? createAdminClient()
+    : createClient<Database>(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, {
+        auth: { persistSession: false, autoRefreshToken: false },
+      });
   let pq = admin.from("pricing_packages").select("*, pricing_hourly_tiers(*)").order("sort_order").order("name_de");
   if (!includeInactive) pq = pq.eq("active", true);
   const [{ data: settings }, { data: packages }] = await Promise.all([
