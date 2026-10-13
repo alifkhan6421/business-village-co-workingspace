@@ -17,7 +17,14 @@ export type TemplateKey =
   | "contact_confirmation"
   | "contact_admin_notification"
   | "booking_admin_notification"
-  | "booking_message";
+  | "booking_message"
+  | "request_received"
+  | "request_admin_notification"
+  | "request_confirmed"
+  | "request_rejected"
+  | "request_cancelled"
+  | "request_alternative"
+  | "request_message";
 
 const esc = (s: string) =>
   s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
@@ -373,5 +380,175 @@ export async function sendAccountEmail(
     locale,
     // Verification and reset links are credentials: never store them in the log.
     redact: key === "welcome" || !actionUrl ? [] : [actionUrl, actionUrl.replace(/&/g, "&amp;")],
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Booking requests
+// ---------------------------------------------------------------------------
+
+export type RequestEmailKind = "received" | "confirmed" | "rejected" | "cancelled" | "alternative" | "message";
+
+const REQUEST_TEMPLATE: Record<RequestEmailKind, TemplateKey> = {
+  received: "request_received",
+  confirmed: "request_confirmed",
+  rejected: "request_rejected",
+  cancelled: "request_cancelled",
+  alternative: "request_alternative",
+  message: "request_message",
+};
+
+async function loadRequest(requestId: string) {
+  const admin = createAdminClient();
+  const { data } = await admin
+    .from("booking_requests")
+    .select("*, assigned_room:rooms!booking_requests_assigned_room_id_fkey(name, floor)")
+    .eq("id", requestId)
+    .single();
+  return data;
+}
+
+function money(value: number | string | null, locale: Locale) {
+  if (value === null || value === undefined) return null;
+  return new Intl.NumberFormat(locale === "de" ? "de-DE" : "en-GB", { style: "currency", currency: "EUR", minimumFractionDigits: 2 }).format(Number(value));
+}
+
+/** Price row: gross with the VAT share, e.g. "248,00 € (inkl. 39,60 € MwSt.)". */
+function priceText(gross: number | null, vat: number | null, vatRate: number | null, t: Awaited<ReturnType<typeof getTranslations>>, locale: Locale) {
+  const g = money(gross, locale);
+  if (!g) return t("priceOnRequest");
+  const v = money(vat, locale);
+  return v ? `${g} (${t("inclVat", { vat: v, rate: vatRate ?? 19 })})` : g;
+}
+
+/**
+ * Emails to the customer about a booking request, in the language chosen when
+ * the request was sent. Each send is recorded in the email log and the request history.
+ */
+export async function sendBookingRequestEmail(requestId: string, kind: RequestEmailKind, opts: { message?: string; actorId?: string | null } = {}) {
+  const r = await loadRequest(requestId);
+  if (!r) return;
+  const locale = (r.locale === "en" ? "en" : "de") as Locale;
+  const t = await getTranslations({ locale, namespace: "emails" });
+  const ts = await getTranslations({ locale, namespace: "status.request" });
+  const site = await companyInfo();
+  const key = REQUEST_TEMPLATE[kind];
+  const tpl = await loadTemplate(key, locale);
+  if (!tpl) return;
+  const room = r.assigned_room as { name: string; floor: string } | null;
+  const firstName = r.contact_name.split(" ")[0] ?? r.contact_name;
+  const vars = { name: firstName, reference: r.reference, resource: room?.name ?? "" };
+  const when = formatRange(r.start_at, r.end_at, locale);
+  const snapshot = (r.quote_snapshot ?? r.price_snapshot) as { vatRate?: number; option?: { priceType?: string } } | null;
+  const isEstimate = !r.price_adjusted && snapshot?.option?.priceType !== "fixed";
+
+  const rows: Row[] = [
+    [t("requestReference"), r.reference],
+    [t("date"), when.date],
+    [t("startTime"), when.start],
+    [t("duration"), t("hours", { count: r.duration_hours })],
+    [t("participants"), String(r.participants)],
+  ];
+  if (kind === "confirmed") {
+    rows.push([t("room"), [room?.name, room?.floor].filter(Boolean).join(", ")]);
+    rows.push([t("confirmedPrice"), priceText(r.quote_gross, r.quote_vat, snapshot?.vatRate ?? null, t, locale)]);
+    rows.push([t("location"), [site?.company_name, addressLine(site)].filter(Boolean).join(", ")]);
+  } else if (kind === "alternative" && r.alternative_start_at && r.alternative_end_at) {
+    const alt = formatRange(r.alternative_start_at, r.alternative_end_at, locale);
+    rows.push([t("alternativeDate"), `${alt.date}, ${t("timeRange", { start: alt.start, end: alt.end })}`]);
+    rows.push([t(isEstimate ? "estimatedPrice" : "price"), priceText(r.quote_gross, r.quote_vat, snapshot?.vatRate ?? null, t, locale)]);
+  } else if (kind === "received" || kind === "message") {
+    rows.push([t(isEstimate ? "estimatedPrice" : "price"), priceText(r.quote_gross, r.quote_vat, snapshot?.vatRate ?? null, t, locale)]);
+  }
+  rows.push([t("status"), ts(r.status)]);
+
+  const message = opts.message ?? (kind === "alternative" ? r.alternative_message ?? undefined : undefined);
+  const extraHtml = message
+    ? `<div style="white-space:pre-wrap;background:#f6f8f7;border-left:3px solid #1b5e4a;border-radius:8px;padding:14px 16px;margin:20px 0;font-size:15px;line-height:1.6">${esc(message)}</div>`
+    : undefined;
+
+  const { html, text } = layout({
+    company: site?.company_name ?? "Business Village",
+    heading: fill(tpl.heading, vars),
+    intro: fill(tpl.intro, vars),
+    rows,
+    extraHtml,
+    extraText: message,
+    outro: fill(tpl.outro, vars),
+    footer: t("footer", { company: site?.company_name ?? "Business Village" }),
+    linkFallback: t("linkFallback"),
+    address: addressLine(site),
+  });
+
+  const res = await sendEmail({
+    to: r.contact_email,
+    type: key,
+    subject: fill(tpl.subject, vars),
+    html,
+    text,
+    locale,
+    bookingId: r.booking_id,
+    bookingRequestId: r.id,
+    replyTo: site?.booking_email || null,
+  });
+  await createAdminClient().rpc("log_booking_request_email", { p_request_id: r.id, p_kind: kind, p_ok: res.ok, p_actor: opts.actorId ?? (null as unknown as string) });
+  return res;
+}
+
+/** Internal notification about a new request, with a link to it in the admin panel. */
+export async function sendBookingRequestAdminNotification(requestId: string) {
+  const admin = createAdminClient();
+  const { data: priv } = await admin.from("private_settings").select("*").eq("id", 1).single();
+  const site = await companyInfo();
+  const to = site?.booking_email || priv?.contact_destination_email;
+  if (!priv?.booking_admin_notification_enabled || !to) return;
+  const r = await loadRequest(requestId);
+  if (!r) return;
+  const locale: Locale = "de";
+  const t = await getTranslations({ locale, namespace: "emails" });
+  const tpl = await loadTemplate("request_admin_notification", locale);
+  if (!tpl) return;
+  const snapshot = r.price_snapshot as { vatRate?: number; option?: { nameDe?: string } } | null;
+  let preferred = "";
+  if (r.preferred_room_id) {
+    const { data: room } = await admin.from("rooms").select("name").eq("id", r.preferred_room_id).maybeSingle();
+    preferred = room?.name ?? "";
+  }
+  const vars = { name: r.contact_name, reference: r.reference, resource: preferred };
+  const when = formatRange(r.start_at, r.end_at, locale);
+  const { html, text } = layout({
+    company: site?.company_name ?? "Business Village",
+    heading: fill(tpl.heading, vars),
+    intro: fill(tpl.intro, vars),
+    rows: [
+      [t("requestReference"), r.reference],
+      [t("date"), when.date],
+      [t("time"), t("timeRange", { start: when.start, end: when.end })],
+      [t("duration"), t("hours", { count: r.duration_hours })],
+      [t("participants"), String(r.participants)],
+      [t("pricingCategory"), snapshot?.option?.nameDe ?? "–"],
+      [t("estimatedPrice"), priceText(r.estimated_gross, r.estimated_vat, snapshot?.vatRate ?? null, t, locale)],
+      [t("customer"), r.contact_name],
+      [t("email"), r.contact_email],
+      [t("phone"), r.contact_phone ?? "–"],
+      [t("company"), r.contact_company ?? "–"],
+      ...(preferred ? ([[t("preferredRoom"), preferred]] as Row[]) : []),
+      [t("message"), r.message ?? "–"],
+      [t("language"), r.locale.toUpperCase()],
+    ],
+    button: { label: t("openInAdmin"), url: appUrl(`/de/admin/requests/${r.id}`) },
+    outro: fill(tpl.outro, vars),
+    footer: t("footer", { company: site?.company_name ?? "Business Village" }),
+    linkFallback: t("linkFallback"),
+  });
+  return sendEmail({
+    to,
+    type: "request_admin_notification",
+    subject: fill(tpl.subject, vars),
+    html,
+    text,
+    locale,
+    bookingRequestId: r.id,
+    replyTo: r.contact_email,
   });
 }

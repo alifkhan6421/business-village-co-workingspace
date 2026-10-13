@@ -8,7 +8,7 @@ import { mediaValues } from "@/lib/admin/queries";
 import { emailConfigured } from "@/lib/email/send";
 import type { Locale } from "@/i18n/routing";
 
-const KEYS = ["booking_confirmation", "guest_booking_confirmation", "booking_updated", "booking_cancelled", "booking_message", "booking_admin_notification", "contact_confirmation", "contact_admin_notification", "welcome", "verify_email", "password_reset"];
+const KEYS = ["booking_confirmation", "guest_booking_confirmation", "booking_updated", "booking_cancelled", "booking_message", "booking_admin_notification", "contact_confirmation", "contact_admin_notification", "welcome", "verify_email", "password_reset", "request_received", "request_admin_notification", "request_confirmed", "request_rejected", "request_cancelled", "request_alternative", "request_message"];
 
 export default async function SettingsPage({ params }: { params: Promise<{ locale: string }> }) {
   const locale = (await params).locale as Locale;

@@ -125,6 +125,7 @@ const templateSchema = z.object({
   template_key: z.enum([
     "welcome", "verify_email", "password_reset", "booking_confirmation", "guest_booking_confirmation", "booking_updated",
     "booking_cancelled", "contact_confirmation", "contact_admin_notification", "booking_admin_notification", "booking_message",
+    "request_received", "request_admin_notification", "request_confirmed", "request_rejected", "request_cancelled", "request_alternative", "request_message",
   ]),
   subject_de: reqString(200),
   heading_de: optString(200),

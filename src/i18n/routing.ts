@@ -14,6 +14,8 @@ export const routing = defineRouting({
     "/coworking/[slug]": "/coworking/[slug]",
     "/meeting-rooms": { de: "/besprechungsraeume", en: "/meeting-rooms" },
     "/meeting-rooms/[slug]": { de: "/besprechungsraeume/[slug]", en: "/meeting-rooms/[slug]" },
+    "/pricing": { de: "/preise", en: "/pricing" },
+    "/booking-request": { de: "/buchungsanfrage", en: "/booking-request" },
     "/amenities": { de: "/ausstattung", en: "/amenities" },
     "/how-it-works": { de: "/so-funktionierts", en: "/how-it-works" },
     "/contact": { de: "/kontakt", en: "/contact" },

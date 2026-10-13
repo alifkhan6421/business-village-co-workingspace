@@ -4,8 +4,9 @@ Website, booking system and admin panel for [Business Village](https://business-
 German is the default language (`/de/...`), English the second (`/en/...`), with localized URLs and hreflang.
 
 - **Public site**: home, coworking desks, meeting rooms, amenities, how it works, contact, legal pages and custom pages, all managed in the CMS.
-- **Booking**: calendar booking (month, week, day) for guests and members, with confirmation emails, a private manage/cancel link for guests and a member account area.
-- **Admin panel** (`/de/admin`): dashboard, calendar, bookings, desks, rooms, amenities, users, guests, inquiries, announcements, media library, website CMS, navigation, footer, SEO, email templates and logs, activity log, settings.
+- **Booking**: coworking desks are booked directly in a calendar (month, week, day) by guests and members, with confirmation emails, a private manage/cancel link for guests and a member account area.
+- **Meeting rooms on request**: a pricing page (`/de/preise`, `/en/pricing`) with a live price calculator, and one central booking request form (`/de/buchungsanfrage`, `/en/booking-request`). Visitors never see room availability and cannot book a room directly; the team assigns a room and confirms.
+- **Admin panel** (`/de/admin`): dashboard, booking requests (list and calendar), pricing management, calendar, bookings, desks, rooms, amenities, users, guests, inquiries, announcements, media library, website CMS, navigation, footer, SEO, email templates and logs, activity log, settings.
 
 ## Stack
 
@@ -50,6 +51,8 @@ Key points of the data model:
 - **Guests** never get an account. Their manage link contains a random token; only its SHA-256 hash is stored (`bookings.management_token_hash`).
 - **Amenities** are relational (`amenities`, `amenity_translations`, `workspace_amenities`, `room_amenities`), so renaming one updates every desk and room.
 - **CMS**: `pages` / `page_translations` and `page_sections` / `page_section_translations`. Language-specific text lives in the translation rows, so editing English never touches German.
+- **Pricing** (`pricing_settings`, `price_hourly_plans`, `price_hourly_tiers`, `price_packages`) is edited under Admin → Pricing. Hourly total = rate for the duration × hours (participants never multiply it); beyond the longest tier the rate rises by the plan's increment per hour. Packages are flat or per person, with an optional price per extra person. Amounts are calculated in integer cents (`src/lib/pricing/calc.ts`), never with floats, and always again on the server.
+- **Booking requests** (`booking_requests`, `booking_request_events`) keep the server-calculated price snapshot from submission unchanged, plus the current quote. Statuses: pending, under_review, alternative_proposed, confirmed, rejected, cancelled, completed; every change records admin, time and note. Confirming creates a regular booking with the same reference through the booking engine, so the exclusion constraint also prevents double booking between simultaneous approvals. Room bookings by non-admins are refused in the database (`room_requests_only`) and `get_busy_slots` hides room slots from visitors.
 - **Media**: `media` rows (with alt text DE/EN) point at the public `media` storage bucket. Images in use (galleries, sections, logo) cannot be deleted.
 
 ## Security
@@ -91,9 +94,10 @@ The webhook verifies the Svix signature, matches the booking by its `BV-…` ref
 
 ```bash
 npm run typecheck && npm run lint
-npm run test:security   # RLS, grants, storage, admin RPCs, secrets in bundle, 10 parallel bookings of Berlin Room 10:00–11:00
-npm run test:e2e        # Playwright: guest flow DE/EN, member flow, taken slot, CMS hero DE/EN isolation,
-                        # gallery cover image, "Podcast Equipment" amenity, contact, imprint, admin booking
+npm run test:pricing    # price engine: tiers, packages, VAT, extra participants (no database needed)
+npm run test:security   # RLS, grants, storage, admin RPCs, room requests only, secrets in bundle, 10 parallel approvals for one room slot
+npm run test:e2e        # Playwright: booking request DE/EN, pricing calculator, admin rate change, request workflow,
+                        # member desk flow, CMS hero DE/EN isolation, gallery cover image, amenity, contact, imprint, admin booking
 ```
 
 Both suites run against the **local** Supabase and refuse other URLs unless `ALLOW_REMOTE_TESTS=1` is set (only for a dedicated test project, never production). They clean up the data they create. `test:e2e` starts the dev server and the mock email API if they are not running; set `PW_CHROMIUM_PATH` to use a preinstalled Chromium.

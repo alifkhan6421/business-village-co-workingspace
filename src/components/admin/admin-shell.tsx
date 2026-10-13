@@ -23,6 +23,8 @@ import {
   UserRound,
   Users,
   DoorOpen,
+  Euro,
+  Inbox,
 } from "lucide-react";
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
@@ -36,6 +38,7 @@ const GROUPS: { key: string; items: Item[] }[] = [
     key: "operations",
     items: [
       { path: "", key: "overview", icon: LayoutDashboard },
+      { path: "/requests", key: "requests", icon: Inbox },
       { path: "/bookings", key: "bookings", icon: ClipboardList },
       { path: "/calendar", key: "calendar", icon: CalendarDays },
     ],
@@ -46,6 +49,7 @@ const GROUPS: { key: string; items: Item[] }[] = [
       { path: "/workspaces", key: "workspaces", icon: Monitor },
       { path: "/rooms", key: "rooms", icon: DoorOpen },
       { path: "/amenities", key: "amenities", icon: Sparkles },
+      { path: "/pricing", key: "pricing", icon: Euro },
     ],
   },
   {
