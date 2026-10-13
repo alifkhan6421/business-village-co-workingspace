@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 type Variant = "success" | "warning" | "danger" | "info" | "muted" | "secondary" | "neutral";
 const VARIANTS: Record<string, Record<string, Variant>> = {
   booking: { pending: "warning", confirmed: "success", cancelled: "danger", completed: "muted", no_show: "secondary" },
+  request: { pending: "warning", under_review: "info", alternative_proposed: "neutral", confirmed: "success", rejected: "danger", cancelled: "danger", completed: "muted" },
   resource: { available: "success", maintenance: "warning", disabled: "muted" },
   inquiry: { new: "info", in_progress: "neutral", resolved: "success" },
   email: { pending: "warning", sent: "success", failed: "danger" },

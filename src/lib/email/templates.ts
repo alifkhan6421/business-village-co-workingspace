@@ -17,31 +17,38 @@ export type TemplateKey =
   | "contact_confirmation"
   | "contact_admin_notification"
   | "booking_admin_notification"
-  | "booking_message";
+  | "booking_message"
+  | "request_received"
+  | "request_admin_notification"
+  | "request_confirmed"
+  | "request_rejected"
+  | "request_alternative"
+  | "request_cancelled"
+  | "request_message";
 
-const esc = (s: string) =>
+export const esc = (s: string) =>
   s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
 
-function fill(text: string, vars: Record<string, string>) {
+export function fill(text: string, vars: Record<string, string>) {
   return text.replace(/\{\{\s*(\w+)\s*\}\}/g, (_, k) => vars[k] ?? "");
 }
 
-async function loadTemplate(key: TemplateKey, locale: Locale) {
+export async function loadTemplate(key: TemplateKey, locale: Locale) {
   const admin = createAdminClient();
   const { data } = await admin.from("email_templates").select("*").eq("template_key", key).in("locale", [locale, "de"]);
   return data?.find((t) => t.locale === locale) ?? data?.find((t) => t.locale === "de") ?? null;
 }
 
-async function companyInfo() {
+export async function companyInfo() {
   const admin = createAdminClient();
   const { data } = await admin.from("site_settings").select("*").eq("id", 1).single();
   return data;
 }
 
-type Row = [label: string, value: string];
+export type Row = [label: string, value: string];
 
 /** Renders the shared HTML + text layout used by every transactional email. */
-function layout(opts: {
+export function layout(opts: {
   company: string;
   heading: string;
   intro: string;
@@ -132,7 +139,7 @@ async function loadBooking(bookingId: string) {
   return data;
 }
 
-function addressLine(s: Awaited<ReturnType<typeof companyInfo>>) {
+export function addressLine(s: Awaited<ReturnType<typeof companyInfo>>) {
   if (!s) return "";
   return [s.address_line_1, s.address_line_2, [s.postcode, s.city].filter(Boolean).join(" ")].filter(Boolean).join(", ");
 }

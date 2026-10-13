@@ -50,12 +50,12 @@ async function guestRateLimited(email: string) {
 }
 
 /**
- * createGuestBooking — the only path through which anonymous visitors can book.
- * Input is validated here; availability, blocks, conflicts, reference
- * generation, guest upsert and audit logging happen atomically in the
- * database function (callable by the service role only).
+ * createGuestBooking — direct booking by anonymous visitors. Switched off:
+ * the public site only takes booking requests (see submitBookingRequest),
+ * which the team confirms in the admin panel. Kept so it can be re-enabled.
  */
 export async function createGuestBooking(input: unknown): Promise<ActionResult<BookingCreated>> {
+  if (process.env.ALLOW_DIRECT_GUEST_BOOKING !== "1") return fail("booking.direct_booking_disabled");
   const raw = (input ?? {}) as Record<string, unknown>;
   const slot = slotSchema.safeParse(raw);
   const guest = guestSchema.safeParse(raw);

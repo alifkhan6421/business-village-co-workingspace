@@ -109,7 +109,7 @@ export default async function ManageBookingPage({ params, searchParams }: Props)
       <p className="mt-4 text-center text-xs text-muted-foreground">{t("rescheduleSoon")} {t("manageBookmark")}</p>
       <div className="mt-8 flex flex-col justify-center gap-2 sm:flex-row">
         <Button asChild size="lg">
-          <a href={localizeHref("/coworking", locale)}>{t("bookAnother")}</a>
+          <a href={localizeHref("/booking-request", locale)}>{t("bookAnother")}</a>
         </Button>
         <Button asChild size="lg" variant="outline">
           <a href={`/${locale}`}>{t("backToHome")}</a>

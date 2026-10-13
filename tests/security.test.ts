@@ -91,8 +91,17 @@ function berlin(date: string, time: string) {
   return new Date(guess.getTime() - offsetMin * 60000).toISOString();
 }
 
+function requestArgs(day: string, time: string, name: string) {
+  return {
+    p_space_type: "room", p_start: berlin(day, time), p_hours: 1, p_participants: 2,
+    p_full_name: `${name} Test`, p_email: `req-${randomUUID().slice(0, 8)}@example.com`, p_phone: null, p_company: null, p_message: null, p_locale: "de",
+    p_user_id: null, p_source_room_id: null, p_package_id: null, p_estimate: null, p_estimate_gross: null,
+  };
+}
+
 async function main() {
   const createdBookings: string[] = [];
+  const createdRequests: string[] = [];
   const tempEmail = `sec-test-${randomUUID().slice(0, 8)}@example.com`;
   const tempPassword = `T3st-${randomBytes(8).toString("hex")}`;
   const { data: temp, error: tempErr } = await service.auth.admin.createUser({
@@ -134,7 +143,8 @@ async function main() {
 
     console.log("\nAnonymous visitor");
     for (const table of ["guests", "bookings", "contact_requests", "email_logs", "booking_messages", "booking_notes",
-      "profiles", "audit_logs", "private_settings", "email_templates", "resource_blocks", "announcements"]) {
+      "profiles", "audit_logs", "private_settings", "email_templates", "resource_blocks", "announcements",
+      "booking_requests", "booking_request_events"]) {
       await check(`cannot read ${table}`, () => expectNoRows(anon, table));
     }
     await check("cannot insert bookings directly", () =>
@@ -145,11 +155,21 @@ async function main() {
     await check("cannot call create_member_booking", () =>
       expectRpcDenied(anon, "create_member_booking", { p_type: "room", p_resource_id: roomId, p_start: berlin(fixtureDay, "08:00"), p_end: berlin(fixtureDay, "09:00") }));
     await check("cannot generate booking references", () => expectRpcDenied(anon, "next_booking_reference", {}));
-    await check("busy slots expose only times, no personal data", async () => {
-      const { data, error } = await anon.rpc("get_busy_slots", { p_type: "room", p_resource_id: roomId, p_from: berlin(fixtureDay, "00:00"), p_to: berlin(fixtureDay, "23:30") });
-      assert(!error, String(error?.message));
-      assert(data.length >= 2, "expected the fixture bookings to show as busy");
-      for (const row of data) assert(Object.keys(row).sort().join() === "end_at,kind,start_at", `unexpected columns ${Object.keys(row)}`);
+    await check("cannot submit booking requests directly (server action only)", () =>
+      expectRpcDenied(anon, "submit_booking_request", requestArgs(fixtureDay, "09:00", "Anon")));
+    await check("cannot insert booking requests directly", () =>
+      expectWriteBlocked(anon.from("booking_requests").insert({ reference: "BA-0000-00000", full_name: "x", email: "x@example.com", start_at: berlin(fixtureDay, "08:00"), end_at: berlin(fixtureDay, "09:00"), requested_start: berlin(fixtureDay, "08:00"), requested_end: berlin(fixtureDay, "09:00"), participants: 1, requested_participants: 1 } as never).select(), "anon insert request"));
+    await check("sees active pricing only", async () => {
+      const { count: active } = await service.from("pricing_packages").select("id", { count: "exact", head: true }).eq("active", true);
+      const { data: visible } = await anon.from("pricing_packages").select("id, active");
+      assert((visible ?? []).every((p) => p.active) && (visible ?? []).length === active, "inactive package visible");
+      const { error } = await anon.from("pricing_packages").update({ name_de: "hacked" }).eq("active", true).select();
+      const { data: still } = await service.from("pricing_packages").select("id").eq("name_de", "hacked");
+      assert(!(still ?? []).length, `anon changed a package (${error?.message ?? "no error"})`);
+    });
+    await check("cannot see availability (booking requests only)", async () => {
+      await expectRpcDenied(anon, "get_busy_slots", { p_type: "room", p_resource_id: roomId, p_from: berlin(fixtureDay, "00:00"), p_to: berlin(fixtureDay, "23:30") });
+      await expectRpcDenied(anon, "find_available_resources", { p_type: "room", p_start: berlin(fixtureDay, "08:00"), p_end: berlin(fixtureDay, "09:00") });
     });
     await check("cannot change site settings", () => expectWriteBlocked(anon.from("site_settings").update({ business_name: "hacked" }).eq("id", 1).select(), "anon update settings"));
     await check("cannot submit contact requests directly (server action only)", () =>
@@ -160,6 +180,12 @@ async function main() {
     });
 
     console.log("\nMember");
+    await check("busy slots expose only times, no personal data", async () => {
+      const { data, error } = await member.rpc("get_busy_slots", { p_type: "room", p_resource_id: roomId, p_from: berlin(fixtureDay, "00:00"), p_to: berlin(fixtureDay, "23:30") });
+      assert(!error, String(error?.message));
+      assert(data.length >= 2, "expected the fixture bookings to show as busy");
+      for (const row of data) assert(Object.keys(row).sort().join() === "end_at,kind,start_at", `unexpected columns ${Object.keys(row)}`);
+    });
     await check("sees own bookings only", async () => {
       const { data, error } = await member.from("bookings").select("id, user_id");
       assert(!error, String(error?.message));
@@ -214,6 +240,13 @@ async function main() {
       await expectRpcDenied(member, "admin_set_gallery", { p_type: "room", p_resource_id: roomId, p_media_ids: [], p_cover_id: null });
       await expectRpcDenied(member, "admin_set_amenities", { p_type: "room", p_resource_id: roomId, p_amenity_ids: [] });
       await expectRpcDenied(member, "log_admin_activity", { p_action: "x", p_entity_type: "x", p_entity_id: null, p_metadata: {} });
+      await expectRpcDenied(member, "submit_booking_request", requestArgs(fixtureDay, "09:00", "Member"));
+      await expectRpcDenied(member, "admin_set_booking_request_status", { p_request_id: randomUUID(), p_status: "confirmed", p_note: "", p_alternative_start: null, p_alternative_end: null });
+    });
+    await check("cannot read or change booking requests", async () => {
+      await expectNoRows(member, "booking_requests");
+      await expectNoRows(member, "booking_request_events");
+      await expectWriteBlocked(member.from("pricing_hourly_tiers").update({ hourly_rate: 1 }).gte("hours", 1).select(), "member update tiers");
     });
     await check("cannot write CMS, resources, amenities or settings", async () => {
       await expectWriteBlocked(member.from("rooms").update({ name: "Hacked" }).eq("id", roomId).select(), "member update room");
@@ -295,8 +328,49 @@ async function main() {
       assert(count === 1, `${count} active bookings in the database`);
       console.log(`      1 confirmed, 9 rejected (${reasons.join(", ")})`);
     });
+
+    console.log("\nConcurrency: 5 booking requests for the same Berlin Room slot, confirmed at once");
+    await check("exactly one request is confirmed", async () => {
+      const admin = await signIn("admin@business-village.de", "DemoAdmin123!");
+      let day = "";
+      for (let offset = 21; offset < 150 && !day; offset++) {
+        const candidate = weekdayAhead(offset);
+        const { data } = await service.rpc("get_busy_slots", { p_type: "room", p_resource_id: roomId, p_from: berlin(candidate, "12:00"), p_to: berlin(candidate, "13:00") });
+        if ((data ?? []).length === 0) day = candidate;
+      }
+      assert(day, "no free day found");
+      const ids: string[] = [];
+      for (let i = 0; i < 5; i++) {
+        const { data, error } = await service.rpc("submit_booking_request", requestArgs(day, "12:00", `Race ${i}`));
+        if (error) throw error;
+        const id = (data as { request_id: string }[])[0].request_id;
+        createdRequests.push(id);
+        ids.push(id);
+        const { error: aErr } = await admin.rpc("admin_update_booking_request", {
+          p_request_id: id, p_resource_type: "room", p_resource_id: roomId, p_start: berlin(day, "12:00"), p_end: berlin(day, "13:00"), p_participants: 2,
+          p_price_snapshot: null, p_price_net: null, p_price_vat: null, p_price_gross: null, p_price_adjusted: false, p_adjustment_reason: "", p_event_type: "updated", p_note: "",
+        });
+        if (aErr) throw aErr;
+      }
+      const results = await Promise.all(ids.map((id) => admin.rpc("admin_set_booking_request_status", { p_request_id: id, p_status: "confirmed", p_note: "", p_alternative_start: null, p_alternative_end: null })));
+      const winners = results.filter((r) => !r.error);
+      for (const w of winners) createdBookings.push(w.data as string);
+      const reasons = [...new Set(results.filter((r) => r.error).map((r) => r.error!.message))];
+      const { count } = await service.from("bookings").select("id", { count: "exact", head: true })
+        .eq("room_id", roomId).eq("start_at", berlin(day, "12:00")).in("status", ["pending", "confirmed"]);
+      const { count: confirmed } = await service.from("booking_requests").select("id", { count: "exact", head: true }).in("id", ids).eq("status", "confirmed");
+      assert(winners.length === 1, `${winners.length} confirmations succeeded`);
+      assert(count === 1, `${count} active bookings in the database`);
+      assert(confirmed === 1, `${confirmed} requests marked confirmed`);
+      console.log(`      1 confirmed, 4 refused (${reasons.join(", ")})`);
+    });
   } finally {
     // Clean up everything this run created.
+    if (createdRequests.length) {
+      const { data: reqs } = await service.from("booking_requests").select("booking_id").in("id", createdRequests);
+      for (const r of reqs ?? []) if (r.booking_id) createdBookings.push(r.booking_id);
+      await service.from("booking_requests").delete().in("id", createdRequests);
+    }
     if (createdBookings.length) {
       const { data: rows } = await service.from("bookings").select("guest_id").in("id", createdBookings);
       await service.from("booking_messages").delete().in("booking_id", createdBookings);
