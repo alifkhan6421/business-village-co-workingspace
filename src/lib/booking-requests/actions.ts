@@ -50,6 +50,16 @@ async function rateLimited(email: string) {
  * is reserved: the team assigns a room and confirms in the admin panel.
  */
 export async function submitBookingRequest(input: unknown): Promise<ActionResult<RequestSubmitted>> {
+  try {
+    return await submit(input);
+  } catch (e) {
+    // e.g. SUPABASE_SERVICE_ROLE_KEY missing in this deployment's environment.
+    console.error("[booking request]", e instanceof Error ? e.message : e);
+    return fail("unknown");
+  }
+}
+
+async function submit(input: unknown): Promise<ActionResult<RequestSubmitted>> {
   const parsed = requestSchema.safeParse(input ?? {});
   if (!parsed.success) return fail("validation", zodFieldErrors(parsed.error));
   const v = parsed.data;
