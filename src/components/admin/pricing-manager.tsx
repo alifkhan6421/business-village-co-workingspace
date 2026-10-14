@@ -17,7 +17,7 @@ import { DeleteButton } from "./delete-button";
 import { LocaleTabs } from "./locale-tabs";
 import { useAdminForm } from "./people-forms";
 import { deletePricingPackage, deletePricingTier, savePricingPackage, savePricingSettings, savePricingTier, setPricingPackageActive } from "@/lib/admin/pricing";
-import { formatCents, hourlyRate, toCents, type PricingPackage } from "@/lib/pricing/calc";
+import { formatCents, hourlyRate, PRICING_CATEGORIES, toCents, type PricingPackage } from "@/lib/pricing/calc";
 
 export type PackageRow = {
   id: string;
@@ -27,6 +27,7 @@ export type PackageRow = {
   description_de: string;
   description_en: string;
   pricing_mode: string;
+  category: string;
   price: string | null;
   price_max: string | null;
   duration_unit: string;
@@ -34,6 +35,7 @@ export type PackageRow = {
   min_hours: number;
   max_hours: number;
   extra_hour_increment: string;
+  tier_price_per_person: boolean;
   min_participants: number;
   max_participants: number | null;
   included_participants: number | null;
@@ -80,6 +82,7 @@ export function PricingSettingsForm({ v }: { v: { vat_rate: string; prices_inclu
 
 function PackageForm({ p, rooms, onDone }: { p: PackageRow | null; rooms: { id: string; name: string }[]; onDone: () => void }) {
   const t = useTranslations("admin.pricing");
+  const tp = useTranslations("pricing");
   const tc = useTranslations("admin.common");
   const router = useRouter();
   const [mode, setMode] = useState(p?.pricing_mode ?? "fixed");
@@ -129,6 +132,11 @@ function PackageForm({ p, rooms, onDone }: { p: PackageRow | null; rooms: { id: 
         <Field label={t("mode")} htmlFor="pk-mode">
           <NativeSelect id="pk-mode" name="pricing_mode" value={mode} onChange={(e) => setMode(e.target.value)}>
             {["hourly_tiers", "fixed", "per_person"].map((x) => <option key={x} value={x}>{t(`modes.${x}`)}</option>)}
+          </NativeSelect>
+        </Field>
+        <Field label={t("categoryLabel")} htmlFor="pk-category" hint={t("categoryHint")}>
+          <NativeSelect id="pk-category" name="category" defaultValue={p?.category ?? "meeting"}>
+            {PRICING_CATEGORIES.map((x) => <option key={x} value={x}>{tp(`categories.${x}`)}</option>)}
           </NativeSelect>
         </Field>
         <Field label={tc("slug")} htmlFor="pk-slug" error={fe("slug")}>
@@ -204,6 +212,15 @@ function PackageForm({ p, rooms, onDone }: { p: PackageRow | null; rooms: { id: 
             <span className="block text-xs text-muted-foreground">{t("priceIsFinalHint")}</span>
           </span>
         </label>
+        {mode === "hourly_tiers" ? (
+          <label className="flex items-start gap-2 text-sm">
+            <input type="checkbox" name="tier_price_per_person" defaultChecked={p?.tier_price_per_person ?? false} className="mt-0.5 h-4 w-4 accent-primary" />
+            <span>
+              {t("tierPricePerPerson")}
+              <span className="block text-xs text-muted-foreground">{t("tierPricePerPersonHint")}</span>
+            </span>
+          </label>
+        ) : null}
         <label className="flex items-center gap-2 text-sm">
           <input type="checkbox" name="active" defaultChecked={p?.active ?? false} className="h-4 w-4 accent-primary" />
           {t("activeLabel")}
@@ -216,7 +233,7 @@ function PackageForm({ p, rooms, onDone }: { p: PackageRow | null; rooms: { id: 
   );
 }
 
-function TierRow({ packageId, tier, example }: { packageId: string; tier: PackageRow["tiers"][number]; example: string }) {
+function TierRow({ packageId, tier, example, perPerson }: { packageId: string; tier: PackageRow["tiers"][number]; example: string; perPerson: boolean }) {
   const t = useTranslations("admin.pricing");
   const { onSubmit, pending, fe, alert } = useAdminForm(savePricingTier, t("tierSaved"));
   return (
@@ -225,7 +242,7 @@ function TierRow({ packageId, tier, example }: { packageId: string; tier: Packag
         <input type="hidden" name="package_id" value={packageId} />
         <input type="hidden" name="hours" value={tier.hours} />
         <div className="pb-2 text-sm font-semibold">{t("hoursShort", { count: tier.hours })}</div>
-        <Field label={t("hourlyRate")} htmlFor={`tier-${packageId}-${tier.hours}`} error={fe("hourly_rate")}>
+        <Field label={perPerson ? t("pricePerPerson") : t("hourlyRate")} htmlFor={`tier-${packageId}-${tier.hours}`} error={fe("hourly_rate")}>
           <Input id={`tier-${packageId}-${tier.hours}`} name="hourly_rate" inputMode="decimal" defaultValue={m(tier.hourly_rate)} />
         </Field>
         <p className="col-span-2 pb-2 text-xs text-muted-foreground sm:col-span-1">{example}</p>
@@ -245,7 +262,7 @@ function TierRow({ packageId, tier, example }: { packageId: string; tier: Packag
   );
 }
 
-function NewTierForm({ packageId, used }: { packageId: string; used: number[] }) {
+function NewTierForm({ packageId, used, perPerson }: { packageId: string; used: number[]; perPerson: boolean }) {
   const t = useTranslations("admin.pricing");
   const next = Array.from({ length: 24 }, (_, i) => i + 1).find((h) => !used.includes(h)) ?? 1;
   const { onSubmit, pending, fe, alert } = useAdminForm(savePricingTier, t("tierSaved"));
@@ -256,7 +273,7 @@ function NewTierForm({ packageId, used }: { packageId: string; used: number[] })
       <Field label={t("duration")} htmlFor={`nt-h-${packageId}`} error={fe("hours")}>
         <Input id={`nt-h-${packageId}`} type="number" name="hours" min={1} max={24} defaultValue={next} key={next} />
       </Field>
-      <Field label={t("hourlyRate")} htmlFor={`nt-r-${packageId}`} error={fe("hourly_rate")}>
+      <Field label={perPerson ? t("pricePerPerson") : t("hourlyRate")} htmlFor={`nt-r-${packageId}`} error={fe("hourly_rate")}>
         <Input id={`nt-r-${packageId}`} name="hourly_rate" inputMode="decimal" />
       </Field>
       <SubmitButton pending={pending} size="sm" className="col-span-2 sm:col-span-1">
@@ -340,12 +357,17 @@ export function PricingPackages({ rows, rooms, packages }: { rows: PackageRow[];
                             key={`${tier.hours}-${tier.hourly_rate}-${tier.active}`}
                             packageId={p.id}
                             tier={tier}
-                            example={t("tierExample", { hours: tier.hours, rate: formatCents(rate, locale), total: formatCents(rate * tier.hours, locale) })}
+                            perPerson={p.tier_price_per_person}
+                            example={
+                              p.tier_price_per_person
+                                ? t("tierExamplePerPerson", { hours: tier.hours, price: formatCents(rate, locale), total: formatCents(rate * 10, locale) })
+                                : t("tierExample", { hours: tier.hours, rate: formatCents(rate, locale), total: formatCents(rate * tier.hours, locale) })
+                            }
                           />
                         );
                       })}
                     </ul>
-                    <NewTierForm packageId={p.id} used={p.tiers.map((x) => x.hours)} />
+                    <NewTierForm packageId={p.id} used={p.tiers.map((x) => x.hours)} perPerson={p.tier_price_per_person} />
                     {calc && p.tiers.length && p.max_hours > Math.max(...p.tiers.map((x) => x.hours)) ? (
                       <p className="text-xs text-muted-foreground">
                         {t("beyondTiers", {

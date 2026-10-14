@@ -1,11 +1,12 @@
 "use client";
+import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { Info } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { applicablePackages, formatCents, formatVatRate, quotePackage, type PricingConfig, type Quote } from "@/lib/pricing/calc";
+import { applicablePackages, formatCents, formatVatRate, PRICING_CATEGORIES, quotePackage, type PricingCategory, type PricingConfig, type Quote } from "@/lib/pricing/calc";
 
-/** Pricing category picker plus net / VAT / gross breakdown for the current inputs. */
+/** What to book (meeting room, event stairs, entire venue), pricing option picker, and net / VAT / gross breakdown. */
 export function EstimatePanel({
   config,
   hours,
@@ -24,14 +25,46 @@ export function EstimatePanel({
   className?: string;
 }) {
   const t = useTranslations("pricing");
-  const options = hours > 0 && participants > 0 ? applicablePackages(config, hours, participants) : [];
+  const categories = PRICING_CATEGORIES.filter((c) => config.packages.some((p) => p.active && p.category === c));
+  const [category, setCategory] = useState<PricingCategory>(
+    config.packages.find((p) => p.id === packageId)?.category ?? categories[0] ?? "meeting",
+  );
+  const all = hours > 0 && participants > 0 ? applicablePackages(config, hours, participants) : [];
+  const options = all.filter((p) => p.category === category);
   const pkg = options.find((p) => p.id === packageId) ?? options[0];
+  const chooseCategory = (c: PricingCategory) => {
+    setCategory(c);
+    onPackageChange(all.find((p) => p.category === c)?.id ?? "");
+  };
   const res = pkg ? quotePackage(pkg, hours, participants, config.settings) : null;
   const quote = res?.ok ? res.quote : null;
   const name = (p: { nameDe: string; nameEn: string }) => (locale === "de" ? p.nameDe : p.nameEn);
+  const optionPrice = (p: (typeof options)[number]) => {
+    const q = quotePackage(p, hours, participants, config.settings);
+    if (!q.ok) return null;
+    const head = config.settings.displayMode === "gross" ? q.quote.grossCents : q.quote.netCents;
+    return formatCents(head, locale);
+  };
 
   return (
     <div className={cn("space-y-4", className)} data-testid="estimate-panel" aria-live="polite">
+      {categories.length > 1 ? (
+        <fieldset>
+          <legend className="mb-2 text-sm font-medium">{t("whatToBook")}</legend>
+          <div className="grid gap-2 sm:grid-cols-3">
+            {categories.map((c) => (
+              <label
+                key={c}
+                data-testid={`category-${c}`}
+                className="flex min-w-0 cursor-pointer items-center gap-2 rounded-xl border bg-background px-3 py-2.5 text-sm font-medium transition-colors hover:border-foreground/20 has-[:checked]:border-primary has-[:checked]:bg-secondary has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring"
+              >
+                <input type="radio" name="pricing-what" value={c} checked={c === category} onChange={() => chooseCategory(c)} className="accent-[var(--primary)]" />
+                <span className="min-w-0">{t(`categories.${c}`)}</span>
+              </label>
+            ))}
+          </div>
+        </fieldset>
+      ) : null}
       {options.length > 1 ? (
         <fieldset>
           <legend className="mb-2 text-sm font-medium">{t("category")}</legend>
@@ -49,12 +82,13 @@ export function EstimatePanel({
                   onChange={() => onPackageChange(p.id)}
                   className="mt-0.5 accent-[var(--primary)]"
                 />
-                <span className="min-w-0">
+                <span className="min-w-0 flex-1">
                   <span className="block font-semibold">{name(p)}</span>
                   {(locale === "de" ? p.descriptionDe : p.descriptionEn) ? (
                     <span className="block text-xs text-muted-foreground">{locale === "de" ? p.descriptionDe : p.descriptionEn}</span>
                   ) : null}
                 </span>
+                <span className="shrink-0 font-semibold tabular-nums">{optionPrice(p)}</span>
               </label>
             ))}
           </div>
@@ -92,13 +126,15 @@ export function QuoteBreakdown({ quote, config, locale, showName = true }: { quo
             <dt className="text-muted-foreground">
               {l.kind === "hourly"
                 ? t("lineHourly", { hours: l.hours, rate: f(l.rateCents) })
-                : l.kind === "fixed"
-                  ? l.unit === "unspecified"
-                    ? t("lineFixed")
-                    : t("lineFixedUnits", { units: l.units, unit: t(`unit.${l.unit}`), price: f(l.priceCents) })
-                  : l.kind === "per_person"
-                    ? t("linePerPerson", { participants: l.participants, price: f(l.priceCents) })
-                    : t("lineExtraPersons", { persons: l.persons, price: f(l.priceCents) })}
+                : l.kind === "tier_per_person"
+                  ? t("lineTierPerPerson", { participants: l.participants, price: f(l.priceCents), hours: l.hours })
+                  : l.kind === "fixed"
+                    ? l.unit === "unspecified"
+                      ? t("lineFixed")
+                      : t("lineFixedUnits", { units: l.units, unit: t(`unit.${l.unit}`), price: f(l.priceCents) })
+                    : l.kind === "per_person"
+                      ? t("linePerPerson", { participants: l.participants, price: f(l.priceCents) })
+                      : t("lineExtraPersons", { persons: l.persons, price: f(l.priceCents) })}
             </dt>
             <dd className="shrink-0 tabular-nums">
               {l.kind === "per_person" && l.maxAmountCents !== null ? `${f(l.amountCents)} – ${f(l.maxAmountCents)}` : f(l.amountCents)}

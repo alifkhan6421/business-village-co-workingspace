@@ -1375,7 +1375,12 @@
       "tierExample": "{hours} h × {rate} = {total}",
       "beyondTiers": "Extra hours: {list}",
       "editPackage": "Edit category",
-      "packageHint": "Prices are calculated exactly in cents. Changes apply immediately to new estimates."
+      "packageHint": "Prices are calculated exactly in cents. Changes apply immediately to new estimates.",
+      "tierPricePerPerson": "Prices per person",
+      "tierPricePerPersonHint": "When on, the tier price is per person for the whole booking: total = price × people. Otherwise: hourly rate × hours.",
+      "tierExamplePerPerson": "{hours} h: {price} per person, e.g. 10 people = {total}",
+      "categoryLabel": "Calculator section",
+      "categoryHint": "Which choice in the calculator shows this category."
     },
     "requests": {
       "title": "Booking requests",
@@ -1507,14 +1512,14 @@
     "title": "Pricing",
     "subtitle": "Clear prices for meeting rooms, packages and events. Calculate your price and send a no-obligation request.",
     "calculatorTitle": "Price calculator",
-    "calculatorHint": "Choose the duration and group size. The price depends on the duration, not the number of people.",
+    "calculatorHint": "Choose the duration and group size. From 10 people you can also choose a whole room at a flat price.",
     "duration": "Duration",
     "hoursOption": "{count, plural, one {# hour} other {# hours}}",
     "participants": "People",
     "participantsInvalid": "Please enter 1 to {max} people.",
     "sendRequest": "Send booking request",
     "requestNote": "No obligation. Our team checks availability and confirms your booking.",
-    "category": "Pricing category",
+    "category": "Pricing option",
     "noPackage": "We don't have a standard price for these details. Send us a request anyway and we will make you an offer.",
     "enterDetails": "Enter the duration and group size to see a price.",
     "packagePrice": "Package price",
@@ -1558,7 +1563,16 @@
     "ctaTitle": "Ready to send your request?",
     "ctaText": "Send us your preferred time. We check availability and get back to you with a confirmation.",
     "pricesInclVat": "All prices incl. {rate} VAT",
-    "pricesExclVat": "All prices excl. {rate} VAT"
+    "pricesExclVat": "All prices excl. {rate} VAT",
+    "lineTierPerPerson": "{participants} people × {price} ({hours} h)",
+    "pricePerPerson": "Price per person",
+    "perPersonTierNote": "Total = price per person × number of people.",
+    "whatToBook": "What would you like to book?",
+    "categories": {
+      "meeting": "A meeting room",
+      "stairs": "The event stairs",
+      "venue": "The entire venue"
+    }
   },
   "request": {
     "title": "Booking request",

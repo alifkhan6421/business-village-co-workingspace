@@ -33,26 +33,43 @@ async function calculate(page: Page, path: string, hours: number, people: number
   return page.locator("[data-testid=price-calculator] [data-testid=estimate-total]");
 }
 
-test("calculator: 8 hours for 9 people is €248 in both languages, and an admin rate change applies at once", async ({ page }) => {
+test("calculator: price per person in both languages, room options from 10 people, and an admin price change applies at once", async ({ page }) => {
   try {
-    await expect(await calculate(page, "/de/preise", 8, 9)).toContainText("248");
-    await expect(page.locator("[data-testid=price-calculator] [data-testid=estimate-net]")).toContainText("208,40");
-    await expect(page.locator("[data-testid=price-calculator] [data-testid=estimate-vat]")).toContainText("39,60");
-    await expect(await calculate(page, "/en/pricing", 8, 9)).toContainText("248");
-    await expect(page.locator("[data-testid=price-calculator] [data-testid=estimate-net]")).toContainText("208.40");
+    // 5 people, 4 hours: 5 × 25 € = 125 €.
+    await expect(await calculate(page, "/de/preise", 4, 5)).toContainText("125");
+    await expect(page.locator("[data-testid=price-calculator] [data-testid=estimate-net]")).toContainText("105,04");
+    await expect(page.locator("[data-testid=price-calculator] [data-testid=estimate-vat]")).toContainText("19,96");
+    await expect(await calculate(page, "/en/pricing", 4, 5)).toContainText("125");
+    await expect(page.locator("[data-testid=price-calculator] [data-testid=estimate-net]")).toContainText("105.04");
+    await expect(await calculate(page, "/en/pricing", 8, 9)).toContainText("279");
 
-    // Groups over 10 have no active hourly category; the larger packages are seeded inactive.
-    await calculate(page, "/en/pricing", 4, 11);
-    await expect(page.locator("[data-testid=price-calculator] [data-testid=no-estimate]")).toBeVisible();
+    // From 10 people a whole room can be chosen instead.
+    const calc = page.locator("[data-testid=price-calculator]");
+    await expect(await calculate(page, "/de/preise", 8, 10)).toContainText("310");
+    await calc.getByRole("radio", { name: /Blauer Raum/ }).check();
+    await expect(calc.locator("[data-testid=estimate-total]")).toContainText("295");
+    await page.fill("#calc-people", "12");
+    await expect(calc.locator("[data-testid=estimate-total]")).toContainText("295");
+    await page.fill("#calc-people", "13");
+    await expect(calc.locator("[data-testid=estimate-total]")).toContainText("395");
 
-    // Admin changes the 8-hour rate to €35 in Preisverwaltung.
+    // The entire venue and the event stairs are separate choices.
+    await calc.locator("[data-testid=category-venue]").click();
+    await page.fill("#calc-people", "45");
+    await expect(calc.locator("[data-testid=estimate-total]")).toContainText("2.450");
+    await calc.locator("[data-testid=category-stairs]").click();
+    await page.fill("#calc-people", "30");
+    await expect(calc.locator("[data-testid=estimate-total]")).toContainText("300");
+    await expect(calc.locator("[data-testid=estimate-total]")).toContainText("450");
+
+    // Admin changes the 8-hour price to €35 in Preisverwaltung: 9 × 35 € = 315 €.
     await login(page, ADMIN);
     await page.goto("/de/admin/pricing", { waitUntil: "networkidle" });
     const tier = page.locator("[data-testid=package-meeting-room-hourly] [data-testid=tier-8]");
     await tier.locator("input[name=hourly_rate]").fill("35");
     await tier.locator("button[type=submit]").click();
     await expectSaved(page);
-    await expect(await calculate(page, "/de/preise", 8, 9)).toContainText("280");
+    await expect(await calculate(page, "/de/preise", 8, 9)).toContainText("315");
   } finally {
     await setTier(8, 31);
   }
@@ -77,7 +94,7 @@ test("guest sends a request from a room page; nothing is reserved; admin assigns
   await page.fill("#rq-name", "Erika Muster");
   await page.fill("#rq-email", email);
   await page.fill("#rq-company", "Muster GmbH");
-  await expect(page.locator("[data-testid=request-summary] [data-testid=estimate-total]")).toContainText("34");
+  await expect(page.locator("[data-testid=request-summary] [data-testid=estimate-total]")).toContainText("153");
   await page.click("[data-testid=submit-request]");
 
   await expect(page.locator("[data-testid=request-success]")).toContainText("Ihre Buchungsanfrage ist eingegangen. Unser Team prüft Ihre Anfrage und meldet sich mit einer Bestätigung bei Ihnen.");
@@ -88,20 +105,20 @@ test("guest sends a request from a room page; nothing is reserved; admin assigns
   // Stored as pending with the estimate snapshot; no booking was created.
   const { data: req } = await db.from("booking_requests").select("*").eq("reference", reference).single();
   expect(req!.status).toBe("pending");
-  expect(Number(req!.estimate_gross)).toBe(34);
+  expect(Number(req!.estimate_gross)).toBe(153);
   expect(req!.booking_id).toBeNull();
   const { count: reserved } = await db.from("bookings").select("id", { count: "exact", head: true }).eq("room_id", resourceId).eq("start_at", berlin(day, "10:00"));
   expect(reserved).toBe(0);
   const mail = await waitForEmail(email, /Ihre Buchungsanfrage/);
   expect(mail.html).toContain(reference);
-  expect(mail.html).toContain("34");
+  expect(mail.html).toContain("153");
 
   // The snapshot survives a later price change.
   await setTier(2, 20);
   try {
     const { data: again } = await db.from("booking_requests").select("estimate_gross, estimate_snapshot").eq("id", req!.id).single();
-    expect(Number(again!.estimate_gross)).toBe(34);
-    expect((again!.estimate_snapshot as { grossCents: number }).grossCents).toBe(3400);
+    expect(Number(again!.estimate_gross)).toBe(153);
+    expect((again!.estimate_snapshot as { grossCents: number }).grossCents).toBe(15300);
   } finally {
     await setTier(2, 17);
   }

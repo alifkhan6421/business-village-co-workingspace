@@ -55,6 +55,7 @@ const packageSchema = z
     description_de: optString(1000),
     description_en: optString(1000),
     pricing_mode: z.enum(["hourly_tiers", "fixed", "per_person"], { message: "invalidValue" }),
+    category: z.enum(["meeting", "stairs", "venue"], { message: "invalidValue" }),
     price: optMoney,
     price_max: optMoney,
     duration_unit: z.enum(["hour", "half_day", "full_day", "custom", "unspecified"], { message: "invalidValue" }),
@@ -62,6 +63,7 @@ const packageSchema = z
     min_hours: intSchema(1, 24),
     max_hours: intSchema(1, 24),
     extra_hour_increment: optMoney,
+    tier_price_per_person: checkbox,
     min_participants: intSchema(1, 1000),
     max_participants: optInt(1, 1000),
     included_participants: optInt(1, 1000),
@@ -90,6 +92,7 @@ export async function savePricingPackage(_: unknown, fd: FormData): Promise<Acti
       description_de: v.description_de ?? "",
       description_en: v.description_en ?? "",
       extra_hour_increment: v.extra_hour_increment ?? "0",
+      tier_price_per_person: v.pricing_mode === "hourly_tiers" && v.tier_price_per_person,
       // Only per-person packages use a maximum price.
       price_max: v.pricing_mode === "per_person" ? v.price_max : null,
       duration_hours: ["half_day", "full_day", "custom"].includes(v.duration_unit) ? v.duration_hours : null,

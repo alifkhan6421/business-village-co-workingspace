@@ -1375,7 +1375,12 @@
       "tierExample": "{hours} Std. × {rate} = {total}",
       "beyondTiers": "Weitere Stunden: {list}",
       "editPackage": "Kategorie bearbeiten",
-      "packageHint": "Preise werden exakt in Cent berechnet. Änderungen gelten sofort für neue Schätzungen."
+      "packageHint": "Preise werden exakt in Cent berechnet. Änderungen gelten sofort für neue Schätzungen.",
+      "tierPricePerPerson": "Preise pro Person",
+      "tierPricePerPersonHint": "Wenn aktiv, gilt der Stufenpreis pro Person für die ganze Buchung: Gesamt = Preis × Personen. Sonst: Stundensatz × Stunden.",
+      "tierExamplePerPerson": "{hours} Std.: {price} pro Person, z. B. 10 Personen = {total}",
+      "categoryLabel": "Bereich im Rechner",
+      "categoryHint": "Unter welcher Auswahl der Rechner diese Kategorie zeigt."
     },
     "requests": {
       "title": "Buchungsanfragen",
@@ -1507,14 +1512,14 @@
     "title": "Preise",
     "subtitle": "Transparente Preise für Besprechungsräume, Pakete und Veranstaltungen. Berechnen Sie Ihren Preis und senden Sie eine unverbindliche Anfrage.",
     "calculatorTitle": "Preisrechner",
-    "calculatorHint": "Wählen Sie Dauer und Personenzahl. Der Preis hängt von der Dauer ab, nicht von der Personenzahl.",
+    "calculatorHint": "Wählen Sie Dauer und Personenzahl. Ab 10 Personen können Sie auch einen ganzen Raum zum Pauschalpreis wählen.",
     "duration": "Dauer",
     "hoursOption": "{count, plural, one {# Stunde} other {# Stunden}}",
     "participants": "Personen",
     "participantsInvalid": "Bitte geben Sie 1 bis {max} Personen ein.",
     "sendRequest": "Buchungsanfrage senden",
     "requestNote": "Unverbindlich. Unser Team prüft die Verfügbarkeit und bestätigt Ihre Buchung.",
-    "category": "Preiskategorie",
+    "category": "Preisoption",
     "noPackage": "Für diese Angaben haben wir keinen Standardpreis. Senden Sie uns trotzdem eine Anfrage, wir erstellen Ihnen ein Angebot.",
     "enterDetails": "Geben Sie Dauer und Personenzahl ein, um einen Preis zu sehen.",
     "packagePrice": "Paketpreis",
@@ -1558,7 +1563,16 @@
     "ctaTitle": "Bereit für Ihre Anfrage?",
     "ctaText": "Senden Sie uns Ihre Wunschzeit. Wir prüfen die Verfügbarkeit und melden uns mit einer Bestätigung.",
     "pricesInclVat": "Alle Preise inkl. {rate} MwSt.",
-    "pricesExclVat": "Alle Preise zzgl. {rate} MwSt."
+    "pricesExclVat": "Alle Preise zzgl. {rate} MwSt.",
+    "lineTierPerPerson": "{participants} Personen × {price} ({hours} Std.)",
+    "pricePerPerson": "Preis pro Person",
+    "perPersonTierNote": "Gesamtpreis = Preis pro Person × Personenzahl.",
+    "whatToBook": "Was möchten Sie buchen?",
+    "categories": {
+      "meeting": "Einen Meetingraum",
+      "stairs": "Die Eventtreppe",
+      "venue": "Die ganze Eventlocation"
+    }
   },
   "request": {
     "title": "Buchungsanfrage",

@@ -73,8 +73,14 @@ export default async function PricingPage({ params }: Props) {
                       <thead className="bg-muted/60 text-left">
                         <tr>
                           <th scope="col" className="px-4 py-3 font-semibold">{t("duration")}</th>
-                          <th scope="col" className="px-4 py-3 font-semibold">{t("hourlyRate")}</th>
-                          <th scope="col" className="px-4 py-3 text-right font-semibold">{t("total")}</th>
+                          {p.tierPricePerPerson ? (
+                            <th scope="col" className="px-4 py-3 text-right font-semibold">{t("pricePerPerson")}</th>
+                          ) : (
+                            <>
+                              <th scope="col" className="px-4 py-3 font-semibold">{t("hourlyRate")}</th>
+                              <th scope="col" className="px-4 py-3 text-right font-semibold">{t("total")}</th>
+                            </>
+                          )}
                         </tr>
                       </thead>
                       <tbody className="divide-y">
@@ -84,15 +90,21 @@ export default async function PricingPage({ params }: Props) {
                           return (
                             <tr key={h}>
                               <td className="px-4 py-2.5">{t("hoursOption", { count: h })}</td>
-                              <td className="px-4 py-2.5 tabular-nums">{f(rate)}</td>
-                              <td className="px-4 py-2.5 text-right font-semibold tabular-nums">{f(rate * h)}</td>
+                              {p.tierPricePerPerson ? (
+                                <td className="px-4 py-2.5 text-right font-semibold tabular-nums">{f(rate)}</td>
+                              ) : (
+                                <>
+                                  <td className="px-4 py-2.5 tabular-nums">{f(rate)}</td>
+                                  <td className="px-4 py-2.5 text-right font-semibold tabular-nums">{f(rate * h)}</td>
+                                </>
+                              )}
                             </tr>
                           );
                         })}
                       </tbody>
                     </table>
                   </div>
-                  <p className="mt-2 text-xs text-muted-foreground">{t("hourlyNote")} {vatNote}</p>
+                  <p className="mt-2 text-xs text-muted-foreground">{p.tierPricePerPerson ? t("perPersonTierNote") : t("hourlyNote")} {vatNote}</p>
                 </div>
               );
             })}

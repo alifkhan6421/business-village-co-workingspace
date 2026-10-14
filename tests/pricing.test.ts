@@ -27,6 +27,7 @@ function pkg(over: Partial<PricingPackage>): PricingPackage {
     descriptionDe: "",
     descriptionEn: "",
     mode: "fixed",
+    category: "meeting",
     priceCents: null,
     priceMaxCents: null,
     durationUnit: "unspecified",
@@ -34,6 +35,7 @@ function pkg(over: Partial<PricingPackage>): PricingPackage {
     minHours: 1,
     maxHours: 14,
     extraHourIncrementCents: 0,
+    tierPricePerPerson: false,
     minParticipants: 1,
     maxParticipants: null,
     includedParticipants: null,
@@ -54,6 +56,7 @@ const hourly = pkg({
   maxHours: 10,
   maxParticipants: 10,
   extraHourIncrementCents: 100,
+  tierPricePerPerson: true,
   sortOrder: 10,
   tiers: RATES.map(([hours, eur]) => ({ hours, rateCents: eur * 100, active: true })),
 });
@@ -63,34 +66,55 @@ const treppe = pkg({ slug: "treppe", mode: "per_person", priceCents: 1000, price
 const settings = { vatBasisPoints: 1900, pricesIncludeVat: true, displayMode: "gross" as const };
 const config: PricingConfig = { settings, packages: [hourly, gruen, komplett, treppe] };
 
-test("9 people, 8 hours: 8 x €31 = €248 including VAT", () => {
-  const q = quoteRequest(config, 8, 9);
+test("price per person: 5 people, 4 hours = 5 x €25 = €125 including VAT", () => {
+  const q = quoteRequest(config, 4, 5);
   assert.ok(q);
   assert.equal(q.packageSlug, "meeting-room-hourly");
-  assert.equal(q.grossCents, 24800);
-  assert.equal(q.netCents + q.vatCents, 24800);
-  assert.equal(q.netCents, 20840); // 248 / 1.19 = 208.40
-  assert.equal(q.vatCents, 3960);
+  assert.equal(q.grossCents, 12500);
+  assert.equal(q.netCents, 10504); // 125 / 1.19 = 105.04
+  assert.equal(q.vatCents, 1996);
+  assert.deepEqual(q.lines, [{ kind: "tier_per_person", hours: 4, participants: 5, priceCents: 2500, amountCents: 12500 }]);
 });
 
-test("participants do not multiply the hourly rate", () => {
-  assert.equal(quoteRequest(config, 8, 1)!.grossCents, quoteRequest(config, 8, 10)!.grossCents);
+test("9 people, 8 hours: 9 x €31 = €279", () => {
+  assert.equal(quoteRequest(config, 8, 9)!.grossCents, 27900);
 });
 
-test("changing the 8-hour rate to €35 gives €280", () => {
+test("one person pays the tier price from the price sheet, with its net value", () => {
+  const sheet: [number, number][] = [[1, 1008], [2, 1429], [3, 1765], [4, 2101], [5, 2269], [6, 2437], [7, 2521], [8, 2605]];
+  for (const [h, net] of sheet) {
+    const q = quoteRequest(config, h, 1)!;
+    assert.equal(q.grossCents, RATES[h - 1][1] * 100, `${h} hours`);
+    assert.equal(q.netCents, net, `${h} hours net`);
+  }
+});
+
+test("changing the 8-hour price to €35 gives 9 x €35 = €315", () => {
   const changed = { ...hourly, tiers: hourly.tiers.map((t) => (t.hours === 8 ? { ...t, rateCents: 3500 } : t)) };
-  const q = quoteRequest({ settings, packages: [changed] }, 8, 9);
-  assert.equal(q!.grossCents, 28000);
+  assert.equal(quoteRequest({ settings, packages: [changed] }, 8, 9)!.grossCents, 31500);
 });
 
-test("every tier from the table", () => {
-  for (const [h, eur] of RATES) assert.equal(quoteRequest(config, h, 4)!.grossCents, h * eur * 100, `${h} hours`);
-});
-
-test("beyond 8 hours the hourly rate rises by €1 per hour", () => {
-  assert.equal(quoteRequest(config, 9, 4)!.grossCents, 9 * 3200);
-  assert.equal(quoteRequest(config, 10, 4)!.grossCents, 10 * 3300);
+test("beyond 8 hours the price per person rises by €1 per hour", () => {
+  assert.equal(quoteRequest(config, 9, 4)!.grossCents, 4 * 3200);
+  assert.equal(quoteRequest(config, 10, 4)!.grossCents, 4 * 3300);
   assert.equal(quotePackage(hourly, 11, 4, settings).ok, false); // above the package maximum
+});
+
+test("with the per-person setting off, tiers are hourly rates: 8 x €31 = €248", () => {
+  const perHour = { ...hourly, tierPricePerPerson: false };
+  const cfg = { settings, packages: [perHour] };
+  assert.equal(quoteRequest(cfg, 8, 9)!.grossCents, 24800);
+  assert.equal(quoteRequest(cfg, 8, 1)!.grossCents, quoteRequest(cfg, 8, 10)!.grossCents);
+  for (const [h, eur] of RATES) assert.equal(quoteRequest(cfg, h, 4)!.grossCents, h * eur * 100, `${h} hours`);
+});
+
+test("from 10 people a whole room at a flat price is offered next to the per-person price", () => {
+  const blau = pkg({ slug: "blauer-raum", priceCents: 29500, minParticipants: 10, maxParticipants: 10, sortOrder: 30 });
+  const cfg = { settings, packages: [hourly, blau, { ...gruen, minParticipants: 10 }] };
+  assert.deepEqual(applicablePackages(cfg, 8, 9).map((p) => p.slug), ["meeting-room-hourly"]);
+  assert.deepEqual(applicablePackages(cfg, 8, 10).map((p) => p.slug), ["meeting-room-hourly", "blauer-raum", "gruener-raum"]);
+  assert.equal(quoteRequest(cfg, 8, 10)!.grossCents, 31000);
+  assert.equal(quoteRequest(cfg, 8, 10, blau.id)!.grossCents, 29500);
 });
 
 test("more than 10 people never use the small-room hourly pricing", () => {

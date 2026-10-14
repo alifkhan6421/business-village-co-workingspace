@@ -8,6 +8,9 @@
  */
 
 export type PricingMode = "hourly_tiers" | "fixed" | "per_person";
+/** What the visitor books: the calculator starts with this choice. */
+export type PricingCategory = "meeting" | "stairs" | "venue";
+export const PRICING_CATEGORIES: PricingCategory[] = ["meeting", "stairs", "venue"];
 export type DurationUnit = "hour" | "half_day" | "full_day" | "custom" | "unspecified";
 
 export type PricingTier = { hours: number; rateCents: number; active: boolean };
@@ -20,6 +23,7 @@ export type PricingPackage = {
   descriptionDe: string;
   descriptionEn: string;
   mode: PricingMode;
+  category: PricingCategory;
   priceCents: number | null;
   priceMaxCents: number | null;
   durationUnit: DurationUnit;
@@ -27,6 +31,8 @@ export type PricingPackage = {
   minHours: number;
   maxHours: number;
   extraHourIncrementCents: number;
+  /** Hourly tiers only: the tier price is per person for the whole booking (total = price × people) instead of per hour (total = rate × hours). */
+  tierPricePerPerson: boolean;
   minParticipants: number;
   maxParticipants: number | null;
   includedParticipants: number | null;
@@ -43,6 +49,7 @@ export type PricingConfig = { settings: PricingSettings; packages: PricingPackag
 
 export type QuoteLine =
   | { kind: "hourly"; hours: number; rateCents: number; amountCents: number }
+  | { kind: "tier_per_person"; hours: number; participants: number; priceCents: number; amountCents: number }
   | { kind: "fixed"; units: number; unit: DurationUnit; unitHours: number | null; priceCents: number; amountCents: number }
   | { kind: "per_person"; participants: number; priceCents: number; amountCents: number; maxAmountCents: number | null }
   | { kind: "extra_persons"; persons: number; priceCents: number; amountCents: number };
@@ -104,7 +111,7 @@ export function splitVat(amountCents: number, settings: PricingSettings) {
   return { netCents: amountCents, vatCents: vat, grossCents: amountCents + vat };
 }
 
-/** Hourly rate for a duration: the matching tier, or the highest tier plus the per-hour increment. */
+/** Tier price for a duration (per hour, or per person when tierPricePerPerson): the matching tier, or the highest tier plus the per-hour increment. */
 export function hourlyRate(pkg: PricingPackage, hours: number): number | null {
   const tiers = pkg.tiers.filter((t) => t.active).sort((a, b) => a.hours - b.hours);
   if (!tiers.length) return null;
@@ -137,7 +144,11 @@ export function quotePackage(pkg: PricingPackage, hours: number, participants: n
   if (pkg.mode === "hourly_tiers") {
     const rate = hourlyRate(pkg, hours);
     if (rate === null) return { ok: false, error: "no_rate" };
-    lines.push({ kind: "hourly", hours, rateCents: rate, amountCents: rate * hours });
+    lines.push(
+      pkg.tierPricePerPerson
+        ? { kind: "tier_per_person", hours, participants, priceCents: rate, amountCents: rate * participants }
+        : { kind: "hourly", hours, rateCents: rate, amountCents: rate * hours },
+    );
   } else if (pkg.mode === "fixed") {
     if (pkg.priceCents === null) return { ok: false, error: "no_price" };
     let units = 1;
