@@ -1,16 +1,16 @@
 "use client";
-import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { Info } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { applicablePackages, formatCents, formatVatRate, PRICING_CATEGORIES, quotePackage, type PricingCategory, type PricingConfig, type Quote } from "@/lib/pricing/calc";
+import { applicablePackages, formatCents, formatVatRate, quotePackage, type PricingCategory, type PricingConfig, type Quote } from "@/lib/pricing/calc";
 
-/** What to book (meeting room, event stairs, entire venue), pricing option picker, and net / VAT / gross breakdown. */
+/** Pricing option picker for the chosen category plus net / VAT / gross breakdown. */
 export function EstimatePanel({
   config,
   hours,
   participants,
+  category,
   packageId,
   onPackageChange,
   locale,
@@ -19,23 +19,15 @@ export function EstimatePanel({
   config: PricingConfig;
   hours: number;
   participants: number;
+  category: PricingCategory;
   packageId: string | null;
   onPackageChange: (id: string) => void;
   locale: "de" | "en";
   className?: string;
 }) {
   const t = useTranslations("pricing");
-  const categories = PRICING_CATEGORIES.filter((c) => config.packages.some((p) => p.active && p.category === c));
-  const [category, setCategory] = useState<PricingCategory>(
-    config.packages.find((p) => p.id === packageId)?.category ?? categories[0] ?? "meeting",
-  );
-  const all = hours > 0 && participants > 0 ? applicablePackages(config, hours, participants) : [];
-  const options = all.filter((p) => p.category === category);
+  const options = hours > 0 && participants > 0 ? applicablePackages(config, hours, participants).filter((p) => p.category === category) : [];
   const pkg = options.find((p) => p.id === packageId) ?? options[0];
-  const chooseCategory = (c: PricingCategory) => {
-    setCategory(c);
-    onPackageChange(all.find((p) => p.category === c)?.id ?? "");
-  };
   const res = pkg ? quotePackage(pkg, hours, participants, config.settings) : null;
   const quote = res?.ok ? res.quote : null;
   const name = (p: { nameDe: string; nameEn: string }) => (locale === "de" ? p.nameDe : p.nameEn);
@@ -48,23 +40,6 @@ export function EstimatePanel({
 
   return (
     <div className={cn("space-y-4", className)} data-testid="estimate-panel" aria-live="polite">
-      {categories.length > 1 ? (
-        <fieldset>
-          <legend className="mb-2 text-sm font-medium">{t("whatToBook")}</legend>
-          <div className="grid gap-2 sm:grid-cols-3">
-            {categories.map((c) => (
-              <label
-                key={c}
-                data-testid={`category-${c}`}
-                className="flex min-w-0 cursor-pointer items-center gap-2 rounded-xl border bg-background px-3 py-2.5 text-sm font-medium transition-colors hover:border-foreground/20 has-[:checked]:border-primary has-[:checked]:bg-secondary has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring"
-              >
-                <input type="radio" name="pricing-what" value={c} checked={c === category} onChange={() => chooseCategory(c)} className="accent-[var(--primary)]" />
-                <span className="min-w-0">{t(`categories.${c}`)}</span>
-              </label>
-            ))}
-          </div>
-        </fieldset>
-      ) : null}
       {options.length > 1 ? (
         <fieldset>
           <legend className="mb-2 text-sm font-medium">{t("category")}</legend>

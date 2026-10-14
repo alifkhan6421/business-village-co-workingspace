@@ -162,6 +162,8 @@ export const getNavigation = cache(async (locale: Locale) => {
   const map = (menu: string): NavItem[] =>
     (data ?? [])
       .filter((i) => i.menu === menu)
+      // Coworking is no longer offered on the public site: only rooms are booked (by request).
+      .filter((i) => !/^\/coworking(\/|$)/.test(i.href))
       .map((i) => ({
         id: i.id,
         label: pickLocalized(i as unknown as Record<string, unknown>, "label", locale),

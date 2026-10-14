@@ -27,10 +27,10 @@ test("taken slot is refused and shown as booked", async ({ page }) => {
   expect(page.url()).toContain("/meeting-rooms/munich-room");
 });
 
-test("member books a desk, sees it in the account and cancels it", async ({ page }) => {
-  const { day } = await freeDay("workspace", "b-03", "09:00", "12:00");
+test("member books a room, sees it in the account and cancels it", async ({ page }) => {
+  const { day } = await freeDay("room", "berlin-room", "09:00", "12:00", 21);
   await login(page, MEMBER);
-  await page.goto("/de/coworking/b-03", { waitUntil: "networkidle" });
+  await page.goto("/de/besprechungsraeume/berlin-room", { waitUntil: "networkidle" });
   await pickSlot(page, day, "09:00", "12:00", "continue-to-review");
   await page.click("[data-testid=continue-to-review]");
   await page.click("[data-testid=confirm-booking]");

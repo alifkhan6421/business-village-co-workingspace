@@ -1512,7 +1512,7 @@
     "title": "Preise",
     "subtitle": "Transparente Preise für Besprechungsräume, Pakete und Veranstaltungen. Berechnen Sie Ihren Preis und senden Sie eine unverbindliche Anfrage.",
     "calculatorTitle": "Preisrechner",
-    "calculatorHint": "Wählen Sie Dauer und Personenzahl. Ab 10 Personen können Sie auch einen ganzen Raum zum Pauschalpreis wählen.",
+    "calculatorHint": "Wählen Sie, was Sie buchen möchten, und geben Sie Personen und Dauer ein. Ihr Preis erscheint sofort.",
     "duration": "Dauer",
     "hoursOption": "{count, plural, one {# Stunde} other {# Stunden}}",
     "participants": "Personen",
@@ -1572,6 +1572,14 @@
       "meeting": "Einen Meetingraum",
       "stairs": "Die Eventtreppe",
       "venue": "Die ganze Eventlocation"
+    },
+    "hoursShort": "{count} Std.",
+    "fewerPeople": "Eine Person weniger",
+    "morePeople": "Eine Person mehr",
+    "categoryHints": {
+      "meeting": "Bis 10 Personen oder ganzer Raum",
+      "stairs": "10–15 € pro Person",
+      "venue": "Treppe & alle Räume"
     }
   },
   "request": {

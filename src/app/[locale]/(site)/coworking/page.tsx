@@ -1,19 +1,11 @@
-import type { Metadata } from "next";
-import { setRequestLocale } from "next-intl/server";
-import { CmsPage } from "@/components/sections/cms-page";
-import { getPage } from "@/lib/cms";
-import { buildMetadata } from "@/lib/seo";
+import { redirect } from "next/navigation";
+import { localizeHref } from "@/lib/href";
 import type { Locale } from "@/i18n/routing";
 
-type Props = { params: Promise<{ locale: string }>; searchParams: Promise<Record<string, string | string[] | undefined>> };
+type Props = { params: Promise<{ locale: string }> };
 
-export async function generateMetadata({ params }: Props): Promise<Metadata> {
+/** Coworking is no longer offered on the public site; old links lead to the meeting rooms. */
+export default async function Page({ params }: Props) {
   const locale = (await params).locale as Locale;
-  return buildMetadata({ locale, internalPath: "/coworking", page: await getPage("coworking", locale) });
-}
-
-export default async function Page({ params, searchParams }: Props) {
-  const locale = (await params).locale as Locale;
-  setRequestLocale(locale);
-  return <CmsPage slug="coworking" locale={locale} searchParams={await searchParams} />;
+  redirect(localizeHref("/meeting-rooms", locale));
 }

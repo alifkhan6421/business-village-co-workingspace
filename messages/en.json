@@ -1512,7 +1512,7 @@
     "title": "Pricing",
     "subtitle": "Clear prices for meeting rooms, packages and events. Calculate your price and send a no-obligation request.",
     "calculatorTitle": "Price calculator",
-    "calculatorHint": "Choose the duration and group size. From 10 people you can also choose a whole room at a flat price.",
+    "calculatorHint": "Choose what you'd like to book, then enter people and duration. Your price appears at once.",
     "duration": "Duration",
     "hoursOption": "{count, plural, one {# hour} other {# hours}}",
     "participants": "People",
@@ -1572,6 +1572,14 @@
       "meeting": "A meeting room",
       "stairs": "The event stairs",
       "venue": "The entire venue"
+    },
+    "hoursShort": "{count} h",
+    "fewerPeople": "One person fewer",
+    "morePeople": "One person more",
+    "categoryHints": {
+      "meeting": "Up to 10 people or a whole room",
+      "stairs": "€10–15 per person",
+      "venue": "Stairs & all rooms"
     }
   },
   "request": {

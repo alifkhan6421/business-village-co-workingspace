@@ -8,9 +8,10 @@ import { Field } from "@/components/ui/label";
 import { FormAlert } from "@/components/forms/form-alert";
 import { useErrorText, useFieldErrorText } from "@/components/forms/use-error-text";
 import { EstimatePanel } from "@/components/pricing/estimate-panel";
+import { activeCategories, CategoryPicker } from "@/components/pricing/category-picker";
 import { submitBookingRequest } from "@/lib/booking-requests/actions";
 import { localizeHref } from "@/lib/href";
-import { hourBounds, type PricingConfig } from "@/lib/pricing/calc";
+import { hourBounds, type PricingCategory, type PricingConfig } from "@/lib/pricing/calc";
 import type { Locale } from "@/i18n/routing";
 
 type Settings = { dayStart: string; dayEnd: string; slotMinutes: number; weekdays: number[]; maxDaysAhead: number };
@@ -42,7 +43,7 @@ export function BookingRequestForm({
   config: PricingConfig;
   settings: Settings;
   today: string;
-  initial: { date?: string; start?: string; hours?: number; people?: number; packageId?: string; spaceType?: "room" | "workspace" };
+  initial: { date?: string; start?: string; hours?: number; people?: number; packageId?: string; category?: PricingCategory };
   room: { slug: string; name: string; capacity: number } | null;
   user: { name: string; email: string; phone: string; company: string } | null;
 }) {
@@ -60,7 +61,10 @@ export function BookingRequestForm({
   const [hours, setHours] = useState(Math.min(Math.max(initial.hours ?? 4, 1), maxHours));
   const [people, setPeople] = useState(initial.people ? String(initial.people) : room ? String(room.capacity) : "");
   const [packageId, setPackageId] = useState<string | null>(initial.packageId ?? null);
-  const [spaceType, setSpaceType] = useState<"room" | "workspace">(room ? "room" : (initial.spaceType ?? "room"));
+  // Public requests are for rooms only (meeting rooms, the event stairs or the entire venue).
+  const [category, setCategory] = useState<PricingCategory>(
+    config.packages.find((p) => p.id === initial.packageId)?.category ?? initial.category ?? activeCategories(config)[0] ?? "meeting",
+  );
   const [contact, setContact] = useState<Contact>({
     fullName: user?.name ?? "",
     email: user?.email ?? "",
@@ -117,8 +121,8 @@ export function BookingRequestForm({
           start: startValue,
           hours,
           participants,
-          spaceType,
-          packageId: spaceType === "room" ? (packageId ?? "") : "",
+          spaceType: "room",
+          packageId: packageId ?? "",
           room: room?.slug,
           ...contact,
           locale,
@@ -167,20 +171,15 @@ export function BookingRequestForm({
                 <DoorOpen className="h-4 w-4" /> {t("fromRoom", { room: room.name })}
               </p>
             ) : null}
-            <fieldset className="mt-5">
-              <legend className="mb-2 text-sm font-medium">{t("spaceType")}</legend>
-              <div className="grid gap-2 sm:grid-cols-2">
-                {(["room", "workspace"] as const).map((k) => (
-                  <label
-                    key={k}
-                    className="flex min-w-0 cursor-pointer items-center gap-2.5 rounded-xl border bg-background px-3.5 py-3 text-sm font-medium transition-colors hover:border-foreground/20 has-[:checked]:border-primary has-[:checked]:bg-secondary has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring"
-                  >
-                    <input type="radio" name="spaceType" value={k} checked={spaceType === k} onChange={() => setSpaceType(k)} className="accent-[var(--primary)]" />
-                    {k === "room" ? t("spaceRoom") : t("spaceDesk")}
-                  </label>
-                ))}
-              </div>
-            </fieldset>
+            <CategoryPicker
+              config={config}
+              value={category}
+              onChange={(c) => {
+                setCategory(c);
+                setPackageId(null);
+              }}
+              className="mt-5"
+            />
             <div className="mt-5 grid gap-4 sm:grid-cols-2">
               <Field label={t("date")} htmlFor="rq-date" error={dateText(fieldErrors.date)}>
                 <Input id="rq-date" type="date" value={date} min={today} max={maxDate} onChange={(e) => setDate(e.target.value)} aria-invalid={!!fieldErrors.date} required />
@@ -252,11 +251,7 @@ export function BookingRequestForm({
             </ul>
           </div>
           <div className="border-t pt-5">
-            {spaceType === "room" ? (
-              <EstimatePanel config={config} hours={hours} participants={validPeople ? participants : 0} packageId={packageId} onPackageChange={setPackageId} locale={locale} />
-            ) : (
-              <p className="rounded-xl bg-muted px-3.5 py-3 text-sm text-muted-foreground" data-testid="desk-price-note">{t("deskPriceNote")}</p>
-            )}
+            <EstimatePanel config={config} hours={hours} participants={validPeople ? participants : 0} category={category} packageId={packageId} onPackageChange={setPackageId} locale={locale} />
           </div>
           {error ? <FormAlert>{error === "validation" ? t("fixErrors") : errText(error)}</FormAlert> : null}
           <p className="text-xs text-muted-foreground">

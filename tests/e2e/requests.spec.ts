@@ -28,7 +28,7 @@ async function setTier(hours: number, rate: number) {
 
 async function calculate(page: Page, path: string, hours: number, people: number) {
   await page.goto(path, { waitUntil: "networkidle" });
-  await page.selectOption("#calc-hours", String(hours));
+  await page.click(`[data-testid=price-calculator] [data-testid=hours-${hours}]`);
   await page.fill("#calc-people", String(people));
   return page.locator("[data-testid=price-calculator] [data-testid=estimate-total]");
 }
@@ -53,8 +53,9 @@ test("calculator: price per person in both languages, room options from 10 peopl
     await page.fill("#calc-people", "13");
     await expect(calc.locator("[data-testid=estimate-total]")).toContainText("395");
 
-    // The entire venue and the event stairs are separate choices.
+    // The entire venue and the event stairs are separate choices; their prices don't depend on the hours.
     await calc.locator("[data-testid=category-venue]").click();
+    await expect(calc.locator("[data-testid=hours-4]")).toHaveCount(0);
     await page.fill("#calc-people", "45");
     await expect(calc.locator("[data-testid=estimate-total]")).toContainText("2.450");
     await calc.locator("[data-testid=category-stairs]").click();
@@ -178,14 +179,20 @@ test("guest sends a request from a room page; nothing is reserved; admin assigns
   await expect.poll(async () => (await sentEmails(email2)).some((m) => m.html.includes("fully booked at that time"))).toBe(true);
 });
 
-test("desk request in English shows no price and old search links lead to the request form", async ({ page }) => {
-  await page.goto("/en/search?type=workspace", { waitUntil: "networkidle" });
-  await expect(page).toHaveURL(/\/en\/booking-request/);
+test("requests are for rooms only: no desk choice, no coworking in the menu, old links lead on", async ({ page }) => {
   await page.goto("/en/booking-request?space=desk", { waitUntil: "networkidle" });
-  await expect(page.locator("[data-testid=desk-price-note]")).toBeVisible();
+  await expect(page.locator("[data-testid=category-picker]")).toBeVisible();
+  await expect(page.getByText("Desk", { exact: true })).toHaveCount(0);
   await expect(page.locator(".fc")).toHaveCount(0);
 
-  // Room lists have no date and time availability filter any more.
+  await page.goto("/de", { waitUntil: "networkidle" });
+  await expect(page.locator("header a[href='/de/coworking']")).toHaveCount(0);
+  await page.goto("/de/coworking");
+  await expect(page).toHaveURL(/\/de\/besprechungsraeume/);
+  await page.goto("/en/search?type=workspace", { waitUntil: "networkidle" });
+  await expect(page).toHaveURL(/\/en\/booking-request/);
+
+  // Room lists have no date and time availability filter.
   await page.goto("/de/besprechungsraeume", { waitUntil: "networkidle" });
   await expect(page.locator("[data-testid=resource-filters] input[type=date]")).toHaveCount(0);
   await expect(page.locator("[data-testid=resource-card] [data-testid=request-booking]").first()).toBeVisible();

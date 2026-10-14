@@ -267,7 +267,7 @@ export async function SectionRenderer({
         out.push(<GallerySection key={key} section={s} locale={locale} />);
         break;
       case "workspaces":
-        out.push(<FeaturedResources key={key} section={s} locale={locale} type="workspace" />);
+        // Coworking is no longer offered publicly; the section stays editable but is not shown.
         break;
       case "rooms":
         out.push(<FeaturedResources key={key} section={s} locale={locale} type="room" />);
@@ -276,7 +276,6 @@ export async function SectionRenderer({
         out.push(<AmenitiesSection key={key} section={s} locale={locale} />);
         break;
       case "workspace_list":
-        out.push(<ResourceList key={key} type="workspace" locale={locale} searchParams={searchParams} />);
         break;
       case "room_list":
         out.push(<ResourceList key={key} type="room" locale={locale} searchParams={searchParams} />);

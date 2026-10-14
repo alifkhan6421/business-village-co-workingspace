@@ -60,7 +60,7 @@ export default async function BookingRequestPage({ params, searchParams }: Props
             hours: num(q("hours")),
             people: num(q("people")),
             packageId: q("package"),
-            spaceType: q("space") === "desk" ? "workspace" : "room",
+            category: q("category") === "stairs" || q("category") === "venue" ? q("category") as "stairs" | "venue" : undefined,
           }}
           room={room ? { slug: room.slug, name: room.name, capacity: room.capacity } : null}
           user={current ? { name: current.profile.full_name ?? "", email: current.profile.email, phone: current.profile.phone ?? "", company: current.profile.company ?? "" } : null}

@@ -22,7 +22,6 @@ export default async function SearchPage({ params, searchParams }: Props) {
     }
   }
   if (q.people && /^\d{1,4}$/.test(q.people)) out.set("people", q.people);
-  if (q.type === "workspace") out.set("space", "desk");
   const query = out.toString();
   redirect(localizeHref("/booking-request", locale) + (query ? `?${query}` : ""));
 }
