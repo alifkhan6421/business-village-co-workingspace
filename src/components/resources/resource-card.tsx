@@ -9,22 +9,17 @@ import { stockResource } from "@/lib/stock-photos";
 import type { ResourceView } from "@/lib/resources";
 import type { Locale } from "@/i18n/routing";
 
-export async function ResourceCard({
-  resource,
-  locale,
-  availability,
-  bookQuery,
-}: {
-  resource: ResourceView;
-  locale: Locale;
-  /** true/false when a time range was searched, undefined otherwise */
-  availability?: boolean;
-  bookQuery?: string;
-}) {
+/** Link to the central booking request form, with the group size prefilled from the space. */
+export function requestHref(resource: Pick<ResourceView, "type" | "slug" | "capacity">, locale: Locale) {
+  const q = resource.type === "room" ? `room=${encodeURIComponent(resource.slug)}&people=${resource.capacity}` : "space=desk&people=1";
+  return `${localizeHref("/booking-request", locale)}?${q}`;
+}
+
+export async function ResourceCard({ resource, locale }: { resource: ResourceView; locale: Locale }) {
   const t = await getTranslations({ locale, namespace: "site" });
   const ts = await getTranslations({ locale, namespace: "status" });
   const base = resource.type === "workspace" ? "/coworking" : "/meeting-rooms";
-  const href = localizeHref(`${base}/${resource.slug}`, locale) + (bookQuery ? `?${bookQuery}` : "");
+  const href = localizeHref(`${base}/${resource.slug}`, locale);
   const cover = resource.cover ?? stockResource(resource.type, resource.slug, 800);
   const amenities = resource.amenities.slice(0, 4).map((a) => a.name);
   const rest = resource.amenities.length - amenities.length;
@@ -50,13 +45,7 @@ export async function ResourceCard({
         <span className="absolute left-3 top-3 rounded-full bg-white/95 px-2.5 py-1 text-xs font-semibold text-foreground shadow-xs backdrop-blur">
           {resource.type === "workspace" ? t("typeWorkspaceShort") : t("typeRoomShort")}
         </span>
-        {availability !== undefined ? (
-          <span className="absolute right-3 top-3">
-            <Badge variant={availability ? "success" : "danger"} className="bg-white/95 shadow-xs">
-              {availability ? t("availableAtTime") : t("notAvailableAtTime")}
-            </Badge>
-          </span>
-        ) : resource.status !== "available" ? (
+        {resource.status !== "available" ? (
           <span className="absolute right-3 top-3">
             <Badge variant="warning" className="shadow-xs">{ts(`resource.${resource.status}`)}</Badge>
           </span>
@@ -94,8 +83,8 @@ export async function ResourceCard({
           <Button asChild variant="outline" size="sm">
             <a href={href}>{t("viewDetails")}</a>
           </Button>
-          <Button asChild size="sm" disabled={availability === false}>
-            <a href={`${href}#booking`}>{t("bookNow")}</a>
+          <Button asChild size="sm">
+            <a href={requestHref(resource, locale)} data-testid="request-booking">{t("requestBooking")}</a>
           </Button>
         </div>
       </div>

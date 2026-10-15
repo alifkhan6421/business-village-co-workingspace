@@ -23,9 +23,13 @@ import {
   UserRound,
   Users,
   DoorOpen,
+  Euro,
+  Inbox,
+  LogOut,
 } from "lucide-react";
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
+import { signOut } from "@/lib/auth-actions";
 import { LanguageSwitcher } from "@/components/site/language-switcher";
 import { cn } from "@/lib/utils";
 import type { Locale } from "@/i18n/routing";
@@ -36,6 +40,7 @@ const GROUPS: { key: string; items: Item[] }[] = [
     key: "operations",
     items: [
       { path: "", key: "overview", icon: LayoutDashboard },
+      { path: "/requests", key: "requests", icon: Inbox },
       { path: "/bookings", key: "bookings", icon: ClipboardList },
       { path: "/calendar", key: "calendar", icon: CalendarDays },
     ],
@@ -46,6 +51,7 @@ const GROUPS: { key: string; items: Item[] }[] = [
       { path: "/workspaces", key: "workspaces", icon: Monitor },
       { path: "/rooms", key: "rooms", icon: DoorOpen },
       { path: "/amenities", key: "amenities", icon: Sparkles },
+      { path: "/pricing", key: "pricing", icon: Euro },
     ],
   },
   {
@@ -153,6 +159,9 @@ export function AdminShell({
 }) {
   const t = useTranslations("admin.nav");
   const tc = useTranslations("common");
+  const tn = useTranslations("nav");
+  const locale = useLocale();
+  const logout = () => void signOut(locale);
   const [open, setOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
   useEffect(() => {
@@ -196,7 +205,20 @@ export function AdminShell({
         <div className={cn("flex-1 overflow-y-auto py-4", collapsed ? "px-2" : "px-3")}>
           <NavList badges={badges} collapsed={collapsed} />
         </div>
-        <div className={cn("border-t p-3", collapsed && "px-2")}>
+        <div className={cn("space-y-1 border-t p-3", collapsed && "px-2")}>
+          <button
+            type="button"
+            onClick={logout}
+            data-testid="admin-logout"
+            className={cn(
+              "flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground",
+              collapsed && "justify-center px-0",
+            )}
+            title={collapsed ? tn("logout") : undefined}
+          >
+            <LogOut className="h-[18px] w-[18px]" />
+            {collapsed ? <span className="sr-only">{tn("logout")}</span> : <span>{tn("logout")}</span>}
+          </button>
           <button
             type="button"
             onClick={toggle}
@@ -223,6 +245,13 @@ export function AdminShell({
             <SheetContent side="left" closeLabel={tc("close")} className="max-w-[18rem] p-4">
               <SheetTitle className="pr-8">{brand}</SheetTitle>
               <NavList badges={badges} onNavigate={() => setOpen(false)} />
+              <button
+                type="button"
+                onClick={logout}
+                className="mt-4 flex w-full items-center gap-3 rounded-lg border-t px-3 pb-2 pt-4 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+              >
+                <LogOut className="h-[18px] w-[18px]" /> {tn("logout")}
+              </button>
             </SheetContent>
           </Sheet>
           <span className="truncate font-semibold lg:hidden">{t("adminArea")}</span>
@@ -243,6 +272,9 @@ export function AdminShell({
                 <span className="block max-w-[11rem] truncate text-xs text-muted-foreground">{userEmail}</span>
               </span>
             </div>
+            <Button variant="ghost" size="icon" onClick={logout} aria-label={tn("logout")} title={tn("logout")} data-testid="admin-header-logout">
+              <LogOut className="!size-[18px]" />
+            </Button>
           </div>
         </header>
         <main className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8 lg:py-8">{children}</main>

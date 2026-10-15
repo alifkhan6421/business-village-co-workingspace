@@ -21,6 +21,8 @@ export const routing = defineRouting({
     "/privacy": { de: "/datenschutz", en: "/privacy" },
     "/terms": { de: "/agb", en: "/terms" },
     "/search": { de: "/suche", en: "/search" },
+    "/pricing": { de: "/preise", en: "/pricing" },
+    "/booking-request": { de: "/buchungsanfrage", en: "/booking-request" },
     "/login": { de: "/anmelden", en: "/login" },
     "/signup": { de: "/registrieren", en: "/signup" },
     "/forgot-password": { de: "/passwort-vergessen", en: "/forgot-password" },

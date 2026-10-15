@@ -26,7 +26,7 @@ import {
   StepsSection,
   TextSection,
 } from "./basic";
-import { AvailabilitySearch } from "./availability-search";
+import { RequestQuickForm } from "./request-quick-form";
 import { ContactForm } from "./contact-form";
 import { MapEmbed } from "./map-embed";
 
@@ -236,7 +236,7 @@ export async function SectionRenderer({
         out.push(<HeroSection key={key} section={s} locale={locale} withSearch={next?.type === "availability_search"} />);
         break;
       case "availability_search":
-        out.push(<AvailabilitySearch key={key} title={s.title} subtitle={s.subtitle} times={times} today={todayBerlin()} overlap={prev?.type === "hero"} />);
+        out.push(<RequestQuickForm key={key} times={times.slice(0, -1)} today={todayBerlin()} maxHours={Math.min(12, times.length > 1 ? Math.floor(((times.length - 1) * settings.booking_slot_minutes) / 60) : 12)} overlap={prev?.type === "hero"} />);
         break;
       case "page_header":
         out.push(<PageHeaderSection key={key} section={s} locale={locale} />);
@@ -267,7 +267,7 @@ export async function SectionRenderer({
         out.push(<GallerySection key={key} section={s} locale={locale} />);
         break;
       case "workspaces":
-        out.push(<FeaturedResources key={key} section={s} locale={locale} type="workspace" />);
+        // Coworking is no longer offered publicly; the section stays editable but is not shown.
         break;
       case "rooms":
         out.push(<FeaturedResources key={key} section={s} locale={locale} type="room" />);
@@ -276,7 +276,6 @@ export async function SectionRenderer({
         out.push(<AmenitiesSection key={key} section={s} locale={locale} />);
         break;
       case "workspace_list":
-        out.push(<ResourceList key={key} type="workspace" locale={locale} searchParams={searchParams} />);
         break;
       case "room_list":
         out.push(<ResourceList key={key} type="room" locale={locale} searchParams={searchParams} />);

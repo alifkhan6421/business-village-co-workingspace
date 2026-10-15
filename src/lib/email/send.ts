@@ -10,6 +10,7 @@ export type SendEmailInput = {
   locale?: "de" | "en";
   bookingId?: string | null;
   contactRequestId?: string | null;
+  bookingRequestId?: string | null;
   replyTo?: string | null;
   /** Strings removed from the stored copy of the body (e.g. management tokens). */
   redact?: string[];
@@ -37,6 +38,7 @@ export async function sendEmail(input: SendEmailInput): Promise<{ ok: boolean; i
       locale: input.locale ?? null,
       related_booking_id: input.bookingId ?? null,
       related_contact_request_id: input.contactRequestId ?? null,
+      ...(input.bookingRequestId ? { related_booking_request_id: input.bookingRequestId } : {}),
       status: "pending",
       body_html: storedBody,
     })

@@ -210,3 +210,13 @@ test("admin creates a guest booking from the calendar link and cancels it", asyn
     if (reference) await deleteBookings([reference]);
   }
 });
+
+test("admin can log out from the dashboard", async ({ page }) => {
+  await login(page, ADMIN);
+  await page.goto("/de/admin", { waitUntil: "networkidle" });
+  await page.click("[data-testid=admin-logout]");
+  await page.waitForURL(/\/de\/?$/);
+  // Signed out: the admin area no longer opens.
+  await page.goto("/de/admin", { waitUntil: "networkidle" });
+  await expect(page.locator("[data-testid=admin-logout]")).toHaveCount(0);
+});

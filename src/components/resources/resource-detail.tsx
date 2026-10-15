@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
-import { ArrowLeft, CalendarCheck, Clock, Hash, Info, Layers, MapPin, Users } from "lucide-react";
+import { ArrowLeft, Clock, Hash, Info, Layers, MapPin, Send, Users } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { FormAlert } from "@/components/forms/form-alert";
@@ -16,6 +16,7 @@ import { formatPrice } from "@/lib/price";
 import { stockResource } from "@/lib/stock-photos";
 import type { Locale } from "@/i18n/routing";
 import { Gallery } from "./gallery";
+import { requestHref } from "./resource-card";
 
 export async function ResourceDetail({
   type,
@@ -43,6 +44,9 @@ export async function ResourceDetail({
   const images = resource.images.length ? resource.images : [{ id: "stock", ...stockResource(type, resource.slug, 1600) }];
   const bookable = resource.status === "available";
   const meta = [resource.floor, resource.zone].filter(Boolean).join(" · ");
+  const requestUrl = requestHref(resource, locale);
+  // Members keep booking directly in the calendar; everyone else sends a request.
+  const memberBooking = bookable && !!current;
 
   const prices = [
     resource.priceHourly !== null ? { label: t("hourly"), value: formatPrice(resource.priceHourly, locale), unit: t("perHour") } : null,
@@ -146,7 +150,7 @@ export async function ResourceDetail({
             </ul>
             {bookable ? (
               <Button asChild size="lg" className="w-full">
-                <a href="#booking"><CalendarCheck /> {t("bookThis")}</a>
+                <a href={requestUrl} data-testid="request-booking"><Send /> {t("requestBooking")}</a>
               </Button>
             ) : (
               <p className="text-sm text-muted-foreground">{t("statusNotBookable", { status: ts(`resource.${resource.status}`) })}</p>
@@ -168,30 +172,43 @@ export async function ResourceDetail({
             <p className="truncate text-xs text-muted-foreground">{resource.name} · {t("upToPersons", { count: resource.capacity })}</p>
           </div>
           <Button asChild className="shrink-0">
-            <a href="#booking">{t("bookThis")}</a>
+            <a href={requestUrl}>{t("requestBooking")}</a>
           </Button>
         </div>
       ) : null}
 
       <section className="mt-16 scroll-mt-20 border-t pt-12" id="booking">
-        <h2 className="text-2xl font-bold tracking-tight">{t("availabilityCalendar")}</h2>
-        <p className="mb-8 mt-1 text-muted-foreground">{t("calendarHint")}</p>
-        {!bookable ? (
-          <FormAlert kind="info">{t("statusNotBookable", { status: ts(`resource.${resource.status}`) })}</FormAlert>
-        ) : (
-          <BookingWidget
-            resource={{ id: resource.id, type, name: resource.name, capacity: resource.capacity, priceHourly: resource.priceHourly, priceDaily: resource.priceDaily }}
-            settings={{
-              dayStart: settings.booking_day_start.slice(0, 5),
-              dayEnd: settings.booking_day_end.slice(0, 5),
-              slotMinutes: settings.booking_slot_minutes,
-              weekdays: settings.booking_weekdays,
-            }}
-            user={current ? { name: current.profile.full_name ?? "", email: current.profile.email } : null}
-            initial={{ date: q("date"), start: q("start"), end: q("end") }}
-            returnPath={localizeHref(`${base}/${resource.slug}`, locale)}
-          />
-        )}
+        <div className="flex flex-col gap-5 rounded-2xl bg-surface p-6 sm:flex-row sm:items-center sm:justify-between sm:p-8">
+          <div className="max-w-2xl">
+            <h2 className="text-2xl font-bold tracking-tight">{t("requestTitle")}</h2>
+            <p className="mt-1 text-muted-foreground">{t("requestText")}</p>
+          </div>
+          {bookable ? (
+            <Button asChild size="lg" className="shrink-0">
+              <a href={requestUrl}><Send /> {t("requestBooking")}</a>
+            </Button>
+          ) : null}
+        </div>
+        {memberBooking && current ? (
+          <div className="mt-12">
+            <h2 className="text-2xl font-bold tracking-tight">{t("memberBookingTitle")}</h2>
+            <p className="mb-8 mt-1 text-muted-foreground">{t("calendarHint")}</p>
+            <BookingWidget
+              resource={{ id: resource.id, type, name: resource.name, capacity: resource.capacity, priceHourly: resource.priceHourly, priceDaily: resource.priceDaily }}
+              settings={{
+                dayStart: settings.booking_day_start.slice(0, 5),
+                dayEnd: settings.booking_day_end.slice(0, 5),
+                slotMinutes: settings.booking_slot_minutes,
+                weekdays: settings.booking_weekdays,
+              }}
+              user={{ name: current.profile.full_name ?? "", email: current.profile.email }}
+              initial={{ date: q("date"), start: q("start"), end: q("end") }}
+              returnPath={localizeHref(`${base}/${resource.slug}`, locale)}
+            />
+          </div>
+        ) : !bookable ? (
+          <FormAlert kind="info" className="mt-6">{t("statusNotBookable", { status: ts(`resource.${resource.status}`) })}</FormAlert>
+        ) : null}
       </section>
     </div>
   );

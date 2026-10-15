@@ -19,8 +19,14 @@ export async function SiteHeader({ locale }: { locale: Locale }) {
     getTranslations({ locale, namespace: "nav" }),
   ]);
   const items = nav.header.map((i) => ({ ...i, href: localizeHref(i.href, locale) }));
+  // The Pricing page is part of the app, so it is listed even before an admin adds it to the menu.
+  const pricingHref = localizeHref("/pricing", locale);
+  if (!items.some((i) => i.href === pricingHref)) {
+    const contactIndex = items.findIndex((i) => i.href === localizeHref("/contact", locale));
+    items.splice(contactIndex >= 0 ? contactIndex : items.length, 0, { id: "pricing", href: pricingHref, label: t("pricing"), newTab: false });
+  }
   const banner = pickLocalized(settings as unknown as Record<string, unknown>, "announcement_banner", locale);
-  const bookHref = localizeHref("/coworking", locale);
+  const bookHref = localizeHref("/booking-request", locale);
   const loginHref = localizeHref("/login", locale);
   const signupHref = localizeHref("/signup", locale);
 
@@ -52,13 +58,13 @@ export async function SiteHeader({ locale }: { locale: Locale }) {
             </Button>
           )}
           <Button asChild size="sm" className="hidden sm:inline-flex">
-            <a href={bookHref}>{t("bookNow")}</a>
+            <a href={bookHref}>{t("requestBooking")}</a>
           </Button>
           <MobileNav
             title={settings.company_name}
             items={items.map((i) => ({ ...i, active: false }))}
             bookHref={bookHref}
-            bookLabel={t("bookNow")}
+            bookLabel={t("requestBooking")}
             auth={current ? null : { loginHref, loginLabel: t("login"), signupHref, signupLabel: t("signup") }}
           />
         </div>
