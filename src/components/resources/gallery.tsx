@@ -63,8 +63,9 @@ export function Gallery({ images, name }: { images: Img[]; name: string }) {
       <div
         className={cn(
           "relative hidden gap-2 overflow-hidden rounded-3xl md:grid",
-          grid.length === 1 && "aspect-[21/9] grid-cols-1",
-          grid.length === 2 && "aspect-[21/9] grid-cols-2",
+          // Explicit height and row: Safari gives grid rows of an aspect-ratio box zero height.
+          grid.length === 1 && "h-[clamp(16rem,40vw,34rem)] grid-cols-1 grid-rows-1",
+          grid.length === 2 && "h-[clamp(16rem,40vw,34rem)] grid-cols-2 grid-rows-1",
           grid.length >= 3 && "h-[440px] grid-cols-4 grid-rows-2",
         )}
       >
