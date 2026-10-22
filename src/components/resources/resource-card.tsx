@@ -9,12 +9,6 @@ import { stockResource } from "@/lib/stock-photos";
 import type { ResourceView } from "@/lib/resources";
 import type { Locale } from "@/i18n/routing";
 
-/** Link to the central booking request form, with the group size prefilled from the space. */
-export function requestHref(resource: Pick<ResourceView, "type" | "slug" | "capacity">, locale: Locale) {
-  const q = resource.type === "room" ? `room=${encodeURIComponent(resource.slug)}&people=${resource.capacity}` : "space=desk&people=1";
-  return `${localizeHref("/booking-request", locale)}?${q}`;
-}
-
 export async function ResourceCard({ resource, locale }: { resource: ResourceView; locale: Locale }) {
   const t = await getTranslations({ locale, namespace: "site" });
   const ts = await getTranslations({ locale, namespace: "status" });
@@ -79,12 +73,10 @@ export async function ResourceCard({ resource, locale }: { resource: ResourceVie
             {rest > 0 ? ` · ${t("moreAmenities", { count: rest })}` : ""}
           </p>
         ) : null}
-        <div className="relative z-10 mt-auto grid grid-cols-2 gap-2 pt-5">
-          <Button asChild variant="outline" size="sm">
-            <a href={href}>{t("viewDetails")}</a>
-          </Button>
-          <Button asChild size="sm">
-            <a href={requestHref(resource, locale)} data-testid="request-booking">{t("requestBooking")}</a>
+        {/* Booking requests start on the details page, so the list only links there. */}
+        <div className="relative z-10 mt-auto pt-5">
+          <Button asChild variant="outline" size="sm" className="w-full">
+            <a href={href} data-testid="view-details">{t("viewDetails")}</a>
           </Button>
         </div>
       </div>

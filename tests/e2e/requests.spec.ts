@@ -80,12 +80,11 @@ test("guest sends a request from a room page; nothing is reserved; admin assigns
   const { day, resourceId } = await freeDay("room", "berlin-room", "10:00", "12:00", 14);
   const email = `e2e-request-${Date.now()}@example.com`;
 
-  // Room page: no availability calendar for visitors, only the request button.
+  // Room page: visitors only browse, with no availability calendar and no request button.
   await page.goto("/de/besprechungsraeume/berlin-room", { waitUntil: "networkidle" });
   await expect(page.locator(".fc")).toHaveCount(0);
-  await page.locator("[data-testid=request-booking]").first().click();
-  await page.waitForURL(/\/de\/buchungsanfrage\?/);
-  await page.waitForLoadState("networkidle");
+  await expect(page.locator("main [data-testid=request-booking]")).toHaveCount(0);
+  await page.goto("/de/buchungsanfrage?room=berlin-room&people=10", { waitUntil: "networkidle" });
   await expect(page.locator("#rq-people")).toHaveValue("10");
 
   await page.fill("#rq-date", day);
@@ -195,5 +194,7 @@ test("requests are for rooms only: no desk choice, no coworking in the menu, old
   // Room lists have no date and time availability filter.
   await page.goto("/de/besprechungsraeume", { waitUntil: "networkidle" });
   await expect(page.locator("[data-testid=resource-filters] input[type=date]")).toHaveCount(0);
-  await expect(page.locator("[data-testid=resource-card] [data-testid=request-booking]").first()).toBeVisible();
+  // Cards only lead to the details page; the request button lives there.
+  await expect(page.locator("[data-testid=resource-card] [data-testid=view-details]").first()).toBeVisible();
+  await expect(page.locator("[data-testid=resource-card] [data-testid=request-booking]")).toHaveCount(0);
 });
