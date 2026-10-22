@@ -55,45 +55,48 @@ export async function ResourceDetail({
         <ArrowLeft className="h-4 w-4" /> {t("backToList")}
       </a>
 
-      <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
+      {/* Desktop: photos and the room's details side by side, so everything fits on one screen. */}
+      <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)] lg:gap-12">
+        <Gallery images={images} name={resource.name} />
+
         <div className="min-w-0">
           <div className="mb-2 flex flex-wrap items-center gap-2">
             <Badge variant="secondary">{type === "workspace" ? t("typeWorkspaceShort") : t("typeRoomShort")}</Badge>
             {!bookable ? <Badge variant="warning">{ts(`resource.${resource.status}`)}</Badge> : null}
           </div>
           <h1 className="text-3xl font-extrabold tracking-tight sm:text-4xl" data-testid="resource-name">{resource.name}</h1>
-          {resource.shortDescription ? <p className="mt-2 max-w-2xl text-lg text-foreground/75">{resource.shortDescription}</p> : null}
           <p className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
             <span className="inline-flex items-center gap-1"><Users className="h-4 w-4" /> {t("upToPersons", { count: resource.capacity })}</span>
             {meta ? <><span aria-hidden="true">·</span><span>{meta}</span></> : null}
             {settings.city ? <><span aria-hidden="true">·</span><span className="inline-flex items-center gap-1"><MapPin className="h-4 w-4" />{settings.city}</span></> : null}
           </p>
-        </div>
-      </div>
 
-      <Gallery images={images} name={resource.name} />
+          {prices.length ? (
+            <p className="mt-4 flex flex-wrap items-baseline gap-x-4 gap-y-1">
+              {prices.map((p, i) => (
+                <span key={p.label} className={i === 0 ? "text-2xl font-extrabold tracking-tight" : "text-sm text-muted-foreground"}>
+                  {p.value} <span className={i === 0 ? "text-base font-medium text-muted-foreground" : ""}>{p.unit}</span>
+                </span>
+              ))}
+            </p>
+          ) : (
+            <p className="mt-4 text-lg font-bold">{t("priceOnRequest")}</p>
+          )}
 
-      <div className="mt-10 grid gap-10 lg:grid-cols-[minmax(0,1fr)_22rem] lg:gap-14">
-        <div className="min-w-0 space-y-10">
-          {resource.fullDescription || resource.shortDescription ? (
-            <section>
-              <h2 className="mb-3 text-xl font-bold tracking-tight">{t("description")}</h2>
-              {resource.fullDescription ? (
-                <RichText html={resource.fullDescription} className="leading-relaxed text-foreground/80" />
-              ) : (
-                <p className="leading-relaxed text-foreground/80">{resource.shortDescription}</p>
-              )}
-            </section>
+          {resource.fullDescription ? (
+            <RichText html={resource.fullDescription} className="mt-5 leading-relaxed text-foreground/80" />
+          ) : resource.shortDescription ? (
+            <p className="mt-5 leading-relaxed text-foreground/80">{resource.shortDescription}</p>
           ) : null}
 
           {resource.amenities.length ? (
-            <section className="border-t pt-10">
-              <h2 className="mb-5 text-xl font-bold tracking-tight">{t("amenities")}</h2>
-              <ul className="grid gap-3 sm:grid-cols-2" data-testid="resource-amenities">
+            <section className="mt-6 border-t pt-6">
+              <h2 className="mb-4 font-semibold">{t("amenities")}</h2>
+              <ul className="grid grid-cols-2 gap-3" data-testid="resource-amenities">
                 {resource.amenities.map((a) => (
-                  <li key={a.id} className="flex items-center gap-3 text-[15px]">
-                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-secondary text-primary">
-                      <Icon name={a.icon} className="h-5 w-5" />
+                  <li key={a.id} className="flex items-center gap-2.5 text-sm">
+                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-secondary text-primary">
+                      <Icon name={a.icon} className="h-4 w-4" />
                     </span>
                     {a.name}
                   </li>
@@ -102,54 +105,33 @@ export async function ResourceDetail({
             </section>
           ) : null}
 
-          <section className="grid gap-6 border-t pt-10 sm:grid-cols-2">
-            <div>
-              <h2 className="mb-3 flex items-center gap-2 font-semibold"><MapPin className="h-4 w-4 text-primary" /> {t("location")}</h2>
-              <dl className="space-y-1.5 text-sm text-muted-foreground">
-                <dd>{[settings.company_name, address].filter(Boolean).join(", ")}</dd>
-                {resource.floor ? <dd className="flex items-center gap-1.5"><Layers className="h-3.5 w-3.5" /> {t("floor")}: {resource.floor}</dd> : null}
-                {resource.zone ? <dd className="flex items-center gap-1.5"><MapPin className="h-3.5 w-3.5" /> {t("zone")}: {resource.zone}</dd> : null}
-                {resource.deskNumber ? <dd className="flex items-center gap-1.5"><Hash className="h-3.5 w-3.5" /> {t("deskNumber")}: {resource.deskNumber}</dd> : null}
-              </dl>
-            </div>
-            {hours ? (
-              <div>
-                <h2 className="mb-3 flex items-center gap-2 font-semibold"><Clock className="h-4 w-4 text-primary" /> {t("openingHours")}</h2>
-                <p className="whitespace-pre-line text-sm text-muted-foreground">{hours}</p>
-              </div>
-            ) : null}
-            <div className="sm:col-span-2">
-              <h2 className="mb-3 flex items-center gap-2 font-semibold"><Info className="h-4 w-4 text-primary" /> {t("rules")}</h2>
-              <p className="text-sm leading-relaxed text-muted-foreground">{t("rulesText", { hours: settings.cancellation_cutoff_hours })}</p>
-            </div>
-          </section>
+          {!bookable ? (
+            <p className="mt-6 text-sm text-muted-foreground">{t("statusNotBookable", { status: ts(`resource.${resource.status}`) })}</p>
+          ) : null}
         </div>
-
-        <aside className="hidden h-fit lg:sticky lg:top-24 lg:block">
-          <div className="rounded-2xl border bg-card p-6 shadow-lg" data-testid="booking-cta">
-            {prices.length ? (
-              <div className="mb-5 space-y-2">
-                {prices.map((p, i) => (
-                  <p key={p.label} className={i === 0 ? "text-2xl font-extrabold tracking-tight" : "text-sm text-muted-foreground"}>
-                    {p.value} <span className={i === 0 ? "text-base font-medium text-muted-foreground" : ""}>{p.unit}</span>
-                  </p>
-                ))}
-              </div>
-            ) : (
-              <p className="mb-5 text-lg font-bold">{t("priceOnRequest")}</p>
-            )}
-            <ul className="mb-6 space-y-2.5 text-sm">
-              <li className="flex items-center gap-2.5"><Users className="h-4 w-4 text-muted-foreground" /> {t("upToPersons", { count: resource.capacity })}</li>
-              {resource.amenities.slice(0, 3).map((a) => (
-                <li key={a.id} className="flex items-center gap-2.5"><Icon name={a.icon} className="h-4 w-4 text-muted-foreground" /> {a.name}</li>
-              ))}
-            </ul>
-            {!bookable ? (
-              <p className="text-sm text-muted-foreground">{t("statusNotBookable", { status: ts(`resource.${resource.status}`) })}</p>
-            ) : null}
-          </div>
-        </aside>
       </div>
+
+      <section className="mt-10 grid gap-6 border-t pt-8 sm:grid-cols-2 lg:grid-cols-3">
+        <div>
+          <h2 className="mb-2 flex items-center gap-2 font-semibold"><MapPin className="h-4 w-4 text-primary" /> {t("location")}</h2>
+          <dl className="space-y-1.5 text-sm text-muted-foreground">
+            <dd>{[settings.company_name, address].filter(Boolean).join(", ")}</dd>
+            {resource.floor ? <dd className="flex items-center gap-1.5"><Layers className="h-3.5 w-3.5" /> {t("floor")}: {resource.floor}</dd> : null}
+            {resource.zone ? <dd className="flex items-center gap-1.5"><MapPin className="h-3.5 w-3.5" /> {t("zone")}: {resource.zone}</dd> : null}
+            {resource.deskNumber ? <dd className="flex items-center gap-1.5"><Hash className="h-3.5 w-3.5" /> {t("deskNumber")}: {resource.deskNumber}</dd> : null}
+          </dl>
+        </div>
+        {hours ? (
+          <div>
+            <h2 className="mb-2 flex items-center gap-2 font-semibold"><Clock className="h-4 w-4 text-primary" /> {t("openingHours")}</h2>
+            <p className="whitespace-pre-line text-sm text-muted-foreground">{hours}</p>
+          </div>
+        ) : null}
+        <div>
+          <h2 className="mb-2 flex items-center gap-2 font-semibold"><Info className="h-4 w-4 text-primary" /> {t("rules")}</h2>
+          <p className="text-sm leading-relaxed text-muted-foreground">{t("rulesText", { hours: settings.cancellation_cutoff_hours })}</p>
+        </div>
+      </section>
 
       {/* Guests only browse here; requests go through the booking request page (header button). */}
       {memberBooking && current ? (
