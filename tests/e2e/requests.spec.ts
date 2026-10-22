@@ -195,5 +195,7 @@ test("requests are for rooms only: no desk choice, no coworking in the menu, old
   // Room lists have no date and time availability filter.
   await page.goto("/de/besprechungsraeume", { waitUntil: "networkidle" });
   await expect(page.locator("[data-testid=resource-filters] input[type=date]")).toHaveCount(0);
-  await expect(page.locator("[data-testid=resource-card] [data-testid=request-booking]").first()).toBeVisible();
+  // Cards only lead to the details page; the request button lives there.
+  await expect(page.locator("[data-testid=resource-card] [data-testid=view-details]").first()).toBeVisible();
+  await expect(page.locator("[data-testid=resource-card] [data-testid=request-booking]")).toHaveCount(0);
 });

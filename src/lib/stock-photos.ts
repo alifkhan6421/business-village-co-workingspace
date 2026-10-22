@@ -10,6 +10,16 @@ const WORKSPACE = ["1524758631624-e2822e304c36", "1497366811353-6870744d04b2", "
 const ROOM = ["1431540015161-0bf868a2d407", "1517502884422-41eaead166d4", "1556761175-b413da4baf72"];
 
 export type StockPhoto = { url: string; alt: string; stock: true };
+export type DefaultPhoto = StockPhoto | { url: string; alt: string };
+
+/** Real photos of the Business Village rooms, shipped with the site in public/images/rooms. */
+const ROOM_PHOTOS: Record<string, string> = {
+  "blue-room": "/images/rooms/blue-room.jpg",
+  "green-room": "/images/rooms/green-room.jpg",
+  cube: "/images/rooms/cube.jpg",
+  "red-mini": "/images/rooms/red-mini.jpg",
+  "red-maxi": "/images/rooms/red-maxi.jpg",
+};
 
 function url(id: string, width: number) {
   return `${BASE}${id}?auto=format&fit=crop&w=${width}&q=70`;
@@ -25,8 +35,12 @@ export function stockHero(width = 1920): StockPhoto {
   return { url: url(HERO, width), alt: "", stock: true };
 }
 
-/** A stable stock photo per resource, so a desk keeps the same picture across pages. */
-export function stockResource(type: "workspace" | "room", seed: string, width = 1200): StockPhoto {
+/**
+ * The built-in photo of a real room (by slug), otherwise a stable stock photo per
+ * resource, so a desk keeps the same picture across pages.
+ */
+export function stockResource(type: "workspace" | "room", seed: string, width = 1200): DefaultPhoto {
+  if (type === "room" && ROOM_PHOTOS[seed]) return { url: ROOM_PHOTOS[seed], alt: "" };
   return { url: url(pick(type === "workspace" ? WORKSPACE : ROOM, seed), width), alt: "", stock: true };
 }
 

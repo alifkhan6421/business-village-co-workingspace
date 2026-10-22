@@ -79,12 +79,10 @@ export async function ResourceCard({ resource, locale }: { resource: ResourceVie
             {rest > 0 ? ` · ${t("moreAmenities", { count: rest })}` : ""}
           </p>
         ) : null}
-        <div className="relative z-10 mt-auto grid grid-cols-2 gap-2 pt-5">
-          <Button asChild variant="outline" size="sm">
-            <a href={href}>{t("viewDetails")}</a>
-          </Button>
-          <Button asChild size="sm">
-            <a href={requestHref(resource, locale)} data-testid="request-booking">{t("requestBooking")}</a>
+        {/* Booking requests start on the details page, so the list only links there. */}
+        <div className="relative z-10 mt-auto pt-5">
+          <Button asChild variant="outline" size="sm" className="w-full">
+            <a href={href} data-testid="view-details">{t("viewDetails")}</a>
           </Button>
         </div>
       </div>
