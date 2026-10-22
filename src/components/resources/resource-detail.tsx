@@ -1,9 +1,7 @@
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
-import { ArrowLeft, Clock, Hash, Info, Layers, MapPin, Send, Users } from "lucide-react";
+import { ArrowLeft, Clock, Hash, Info, Layers, MapPin, Users } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { FormAlert } from "@/components/forms/form-alert";
 import { RichText } from "@/components/sections/basic";
 import { BookingWidget } from "@/components/booking/booking-widget";
 import { Icon } from "@/lib/icons";
@@ -16,7 +14,6 @@ import { formatPrice } from "@/lib/price";
 import { stockResource } from "@/lib/stock-photos";
 import type { Locale } from "@/i18n/routing";
 import { Gallery } from "./gallery";
-import { requestHref } from "./resource-card";
 
 export async function ResourceDetail({
   type,
@@ -44,7 +41,6 @@ export async function ResourceDetail({
   const images = resource.images.length ? resource.images : [{ id: "stock", ...stockResource(type, resource.slug, 1600) }];
   const bookable = resource.status === "available";
   const meta = [resource.floor, resource.zone].filter(Boolean).join(" · ");
-  const requestUrl = requestHref(resource, locale);
   // Members keep booking directly in the calendar; everyone else sends a request.
   const memberBooking = bookable && !!current;
 
@@ -54,7 +50,7 @@ export async function ResourceDetail({
   ].filter(Boolean) as { label: string; value: string; unit: string }[];
 
   return (
-    <div className="mx-auto max-w-7xl px-4 pb-28 pt-6 sm:px-6 sm:pt-8 lg:pb-8">
+    <div className="mx-auto max-w-7xl px-4 pb-12 pt-6 sm:px-6 sm:pt-8">
       <a href={localizeHref(base, locale)} className="mb-5 inline-flex items-center gap-1.5 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground">
         <ArrowLeft className="h-4 w-4" /> {t("backToList")}
       </a>
@@ -148,49 +144,17 @@ export async function ResourceDetail({
                 <li key={a.id} className="flex items-center gap-2.5"><Icon name={a.icon} className="h-4 w-4 text-muted-foreground" /> {a.name}</li>
               ))}
             </ul>
-            {bookable ? (
-              <Button asChild size="lg" className="w-full">
-                <a href={requestUrl} data-testid="request-booking"><Send /> {t("requestBooking")}</a>
-              </Button>
-            ) : (
+            {!bookable ? (
               <p className="text-sm text-muted-foreground">{t("statusNotBookable", { status: ts(`resource.${resource.status}`) })}</p>
-            )}
+            ) : null}
           </div>
         </aside>
       </div>
 
-      {bookable ? (
-        <div className="fixed inset-x-0 bottom-0 z-30 flex items-center justify-between gap-4 border-t bg-background/95 px-4 pt-3 shadow-[0_-8px_24px_-12px_rgb(16_32_26/0.18)] backdrop-blur pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] lg:hidden">
-          <div className="min-w-0">
-            {prices.length ? (
-              <p className="truncate font-bold">
-                {prices[0].value} <span className="text-sm font-medium text-muted-foreground">{prices[0].unit}</span>
-              </p>
-            ) : (
-              <p className="truncate font-semibold">{t("priceOnRequest")}</p>
-            )}
-            <p className="truncate text-xs text-muted-foreground">{resource.name} · {t("upToPersons", { count: resource.capacity })}</p>
-          </div>
-          <Button asChild className="shrink-0">
-            <a href={requestUrl}>{t("requestBooking")}</a>
-          </Button>
-        </div>
-      ) : null}
-
-      <section className="mt-16 scroll-mt-20 border-t pt-12" id="booking">
-        <div className="flex flex-col gap-5 rounded-2xl bg-surface p-6 sm:flex-row sm:items-center sm:justify-between sm:p-8">
-          <div className="max-w-2xl">
-            <h2 className="text-2xl font-bold tracking-tight">{t("requestTitle")}</h2>
-            <p className="mt-1 text-muted-foreground">{t("requestText")}</p>
-          </div>
-          {bookable ? (
-            <Button asChild size="lg" className="shrink-0">
-              <a href={requestUrl}><Send /> {t("requestBooking")}</a>
-            </Button>
-          ) : null}
-        </div>
-        {memberBooking && current ? (
-          <div className="mt-12">
+      {/* Guests only browse here; requests go through the booking request page (header button). */}
+      {memberBooking && current ? (
+        <section className="mt-16 scroll-mt-20 border-t pt-12" id="booking">
+          <div>
             <h2 className="text-2xl font-bold tracking-tight">{t("memberBookingTitle")}</h2>
             <p className="mb-8 mt-1 text-muted-foreground">{t("calendarHint")}</p>
             <BookingWidget
@@ -206,10 +170,8 @@ export async function ResourceDetail({
               returnPath={localizeHref(`${base}/${resource.slug}`, locale)}
             />
           </div>
-        ) : !bookable ? (
-          <FormAlert kind="info" className="mt-6">{t("statusNotBookable", { status: ts(`resource.${resource.status}`) })}</FormAlert>
-        ) : null}
-      </section>
+        </section>
+      ) : null}
     </div>
   );
 }
