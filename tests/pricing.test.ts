@@ -12,6 +12,8 @@ import {
   splitVat,
   toCents,
   centsToDecimal,
+  quoteWorkspace,
+  workspaceLastDay,
   type PricingConfig,
   type PricingPackage,
 } from "../src/lib/pricing/calc";
@@ -167,4 +169,50 @@ test("decimal conversion without floating point", () => {
   assert.equal(toCents("abc"), null);
   assert.equal(centsToDecimal(24800), "248.00");
   assert.equal(centsToDecimal(5), "0.05");
+});
+
+// ---------------------------------------------------------------------------
+// Shared workspaces
+// ---------------------------------------------------------------------------
+const ws = [
+  { id: "a", name: "Duo", capacity: 2, dayCents: 2500, monthCents: 29000 },
+  { id: "b", name: "Team", capacity: 4, dayCents: 2000, monthCents: 25000 },
+  { id: "c", name: "Monthly only", capacity: 3, dayCents: null, monthCents: 27000 },
+];
+const vat = { vatBasisPoints: 1900, pricesIncludeVat: true, displayMode: "gross" as const };
+
+test("workspace: price per person per day × people × days", () => {
+  const q = quoteWorkspace(ws, "day", 5, 2, vat, "a")!;
+  assert.equal(q.grossCents, 2500 * 2 * 5);
+  assert.equal(q.maxGrossCents, null);
+  assert.equal(q.packageName.de, "Duo");
+  assert.equal(q.netCents + q.vatCents, q.grossCents);
+});
+
+test("workspace: per month, range without a preference", () => {
+  const q = quoteWorkspace(ws, "month", 2, 2, vat)!;
+  assert.equal(q.grossCents, 25000 * 2 * 2);
+  assert.equal(q.maxGrossCents, 29000 * 2 * 2);
+  // Three people only fit into Team (4) and Monthly only (3).
+  const q3 = quoteWorkspace(ws, "month", 1, 3, vat)!;
+  assert.equal(q3.grossCents, 25000 * 3);
+  assert.equal(q3.maxGrossCents, 27000 * 3);
+});
+
+test("workspace: no quote when nothing fits or no price", () => {
+  assert.equal(quoteWorkspace(ws, "day", 1, 5, vat), null);
+  assert.equal(quoteWorkspace(ws, "day", 1, 1, vat, "c"), null);
+  assert.equal(quoteWorkspace(ws, "day", 0, 1, vat), null);
+  assert.equal(quoteWorkspace(ws, "month", 13, 1, vat), null);
+});
+
+test("workspace period: open days and months from the start date", () => {
+  const weekdays = [1, 2, 3, 4, 5];
+  // Mon 16 Nov 2026 + 5 days = Fri 20 Nov; Thu 19 Nov + 3 days = Thu, Fri, Mon 23 Nov.
+  assert.equal(workspaceLastDay("day", "2026-11-16", 5, weekdays), "2026-11-20");
+  assert.equal(workspaceLastDay("day", "2026-11-19", 3, weekdays), "2026-11-23");
+  assert.equal(workspaceLastDay("day", "2026-11-21", 1, weekdays), null);
+  assert.equal(workspaceLastDay("month", "2026-11-15", 1, weekdays), "2026-12-14");
+  assert.equal(workspaceLastDay("month", "2027-01-31", 1, weekdays), "2027-02-27");
+  assert.equal(workspaceLastDay("month", "2026-11-15", 12, weekdays), "2027-11-14");
 });

@@ -7,8 +7,9 @@ import { getCurrentUser } from "@/lib/auth";
 import { type ActionResult, dbErrorKey, fail, zodFieldErrors } from "@/lib/action-result";
 import { emailSchema, optString, phoneSchema, reqString } from "@/lib/validation";
 import { berlinToUtc } from "@/lib/time";
-import { centsToDecimal, quoteRequest } from "@/lib/pricing/calc";
-import { loadPricingConfig } from "@/lib/pricing/server";
+import { centsToDecimal, quoteRequest, quoteWorkspace, WORKSPACE_MAX_UNITS } from "@/lib/pricing/calc";
+import { loadPricingConfig, loadWorkspacePrices } from "@/lib/pricing/server";
+import { todayBerlin } from "@/lib/time";
 import { sendRequestAdminNotification, sendRequestEmail } from "@/lib/email/request-emails";
 
 const requestSchema = z.object({
@@ -28,6 +29,29 @@ const requestSchema = z.object({
   // Honeypot field: real users never fill it in.
   website: z.string().max(0).optional().or(z.literal("")),
 });
+
+const contactSchema = {
+  fullName: reqString(200),
+  email: emailSchema,
+  phone: phoneSchema,
+  company: optString(200),
+  message: optString(2000),
+  locale: z.enum(["de", "en"]).catch("de"),
+  website: z.string().max(0).optional().or(z.literal("")),
+};
+
+/** Shared workspace: a desk per person, per day or per month from a start date. */
+const workspaceSchema = z
+  .object({
+    spaceType: z.literal("workspace"),
+    unit: z.enum(["day", "month"], { message: "invalidValue" }),
+    date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "invalidDate"),
+    count: z.coerce.number({ message: "invalidNumber" }).int("invalidNumber").min(1, "invalidNumber"),
+    participants: z.coerce.number({ message: "invalidNumber" }).int("invalidNumber").min(1, "invalidNumber").max(500, "invalidNumber"),
+    workspaceId: z.string().uuid().optional().or(z.literal("")).catch(""),
+    ...contactSchema,
+  })
+  .refine((v) => v.count <= WORKSPACE_MAX_UNITS[v.unit], { path: ["count"], message: "invalidNumber" });
 
 export type RequestSubmitted = { reference: string };
 
@@ -60,6 +84,7 @@ export async function submitBookingRequest(input: unknown): Promise<ActionResult
 }
 
 async function submit(input: unknown): Promise<ActionResult<RequestSubmitted>> {
+  if ((input as { spaceType?: unknown } | null)?.spaceType === "workspace") return submitWorkspace(input);
   const parsed = requestSchema.safeParse(input ?? {});
   if (!parsed.success) return fail("validation", zodFieldErrors(parsed.error));
   const v = parsed.data;
@@ -106,6 +131,49 @@ async function submit(input: unknown): Promise<ActionResult<RequestSubmitted>> {
   }
   const row = data[0];
 
+  await sendRequestEmail(row.request_id, "received");
+  await sendRequestAdminNotification(row.request_id);
+  revalidatePath("/[locale]/admin", "layout");
+  return { ok: true, data: { reference: row.reference } };
+}
+
+async function submitWorkspace(input: unknown): Promise<ActionResult<RequestSubmitted>> {
+  const parsed = workspaceSchema.safeParse(input ?? {});
+  if (!parsed.success) return fail("validation", zodFieldErrors(parsed.error));
+  const v = parsed.data;
+  if (v.website) return fail("validation");
+  if (v.date < todayBerlin()) return fail("request.start_in_past", { date: "dateInPast" });
+  if (await rateLimited(v.email)) return fail("rateLimited");
+
+  const [config, workspaces] = await Promise.all([loadPricingConfig(), loadWorkspacePrices()]);
+  if (!workspaces.some((w) => w.capacity >= v.participants)) return fail("request.capacity_exceeded", { participants: "invalidNumber" });
+  const preferred = v.workspaceId && workspaces.some((w) => w.id === v.workspaceId) ? v.workspaceId : null;
+  const quote = quoteWorkspace(workspaces, v.unit, v.count, v.participants, config.settings, preferred);
+  const snapshot = quote ? { ...quote, version: 1, calculatedAt: new Date().toISOString() } : null;
+  const current = await getCurrentUser();
+
+  const admin = createAdminClient();
+  const { data, error } = await admin.rpc("submit_workspace_request", {
+    p_unit: v.unit,
+    p_start_date: v.date,
+    p_count: v.count,
+    p_participants: v.participants,
+    p_full_name: v.fullName,
+    p_email: v.email,
+    p_phone: v.phone ?? "",
+    p_company: v.company ?? "",
+    p_message: v.message ?? "",
+    p_locale: v.locale,
+    p_user_id: (current?.user.id ?? null) as string,
+    p_preferred_workspace_id: preferred as string,
+    p_estimate: snapshot as never,
+    p_estimate_gross: (quote ? centsToDecimal(quote.grossCents) : null) as unknown as number,
+  });
+  if (error || !data?.[0]) {
+    if (error && dbErrorKey(error, "request") === "unknown") console.error("[workspace request]", error.message);
+    return fail(dbErrorKey(error, "request"));
+  }
+  const row = data[0];
   await sendRequestEmail(row.request_id, "received");
   await sendRequestAdminNotification(row.request_id);
   revalidatePath("/[locale]/admin", "layout");

@@ -164,13 +164,13 @@ isOneToOne: false
                   ]
                 },"booking_requests": {
                   Row: {
-                    "alternative_end": string | null,"alternative_start": string | null,"assigned_room_id": string | null,"assigned_workspace_id": string | null,"booking_id": string | null,"company": string | null,"created_at": string,"email": string,"end_at": string,"estimate_gross": number | null,"estimate_snapshot": Json | null,"full_name": string,"id": string,"locale": string,"message": string | null,"package_id": string | null,"participants": number,"phone": string | null,"price_adjusted": boolean,"price_adjustment_reason": string | null,"price_gross": number | null,"price_net": number | null,"price_snapshot": Json | null,"price_vat": number | null,"reference": string,"requested_end": string,"requested_hours": number,"requested_participants": number,"requested_start": string,"source_room_id": string | null,"space_type": string,"start_at": string,"status": string,"status_reason": string | null,"updated_at": string,"user_id": string | null
+                    "alternative_end": string | null,"alternative_start": string | null,"assigned_desk_ids": string[],"assigned_room_id": string | null,"assigned_workspace_id": string | null,"booking_id": string | null,"booking_unit": string,"company": string | null,"created_at": string,"email": string,"end_at": string,"estimate_gross": number | null,"estimate_snapshot": Json | null,"full_name": string,"id": string,"locale": string,"message": string | null,"package_id": string | null,"participants": number,"phone": string | null,"price_adjusted": boolean,"price_adjustment_reason": string | null,"price_gross": number | null,"price_net": number | null,"price_snapshot": Json | null,"preferred_workspace_id": string | null,"price_vat": number | null,"reference": string,"requested_end": string,"requested_hours": number | null,"requested_participants": number,"requested_start": string,"source_room_id": string | null,"space_type": string,"start_at": string,"status": string,"status_reason": string | null,"unit_count": number | null,"updated_at": string,"user_id": string | null
                   }
                   Insert: {
-                    "alternative_end"?: string | null,"alternative_start"?: string | null,"assigned_room_id"?: string | null,"assigned_workspace_id"?: string | null,"booking_id"?: string | null,"company"?: string | null,"created_at"?: string,"email": string,"end_at": string,"estimate_gross"?: number | null,"estimate_snapshot"?: Json | null,"full_name": string,"id"?: string,"locale"?: string,"message"?: string | null,"package_id"?: string | null,"participants": number,"phone"?: string | null,"price_adjusted"?: boolean,"price_adjustment_reason"?: string | null,"price_gross"?: number | null,"price_net"?: number | null,"price_snapshot"?: Json | null,"price_vat"?: number | null,"reference": string,"requested_end": string,"requested_hours": number,"requested_participants": number,"requested_start": string,"source_room_id"?: string | null,"space_type"?: string,"start_at": string,"status"?: string,"status_reason"?: string | null,"updated_at"?: string,"user_id"?: string | null
+                    "alternative_end"?: string | null,"alternative_start"?: string | null,"assigned_desk_ids"?: string[],"assigned_room_id"?: string | null,"assigned_workspace_id"?: string | null,"booking_id"?: string | null,"booking_unit"?: string,"company"?: string | null,"created_at"?: string,"email": string,"end_at": string,"estimate_gross"?: number | null,"estimate_snapshot"?: Json | null,"full_name": string,"id"?: string,"locale"?: string,"message"?: string | null,"package_id"?: string | null,"participants": number,"phone"?: string | null,"price_adjusted"?: boolean,"price_adjustment_reason"?: string | null,"price_gross"?: number | null,"price_net"?: number | null,"price_snapshot"?: Json | null,"preferred_workspace_id"?: string | null,"price_vat"?: number | null,"reference": string,"requested_end": string,"requested_hours"?: number | null,"requested_participants": number,"requested_start": string,"source_room_id"?: string | null,"space_type"?: string,"start_at": string,"status"?: string,"status_reason"?: string | null,"unit_count"?: number | null,"updated_at"?: string,"user_id"?: string | null
                   }
                   Update: {
-                    "alternative_end"?: string | null,"alternative_start"?: string | null,"assigned_room_id"?: string | null,"assigned_workspace_id"?: string | null,"booking_id"?: string | null,"company"?: string | null,"created_at"?: string,"email"?: string,"end_at"?: string,"estimate_gross"?: number | null,"estimate_snapshot"?: Json | null,"full_name"?: string,"id"?: string,"locale"?: string,"message"?: string | null,"package_id"?: string | null,"participants"?: number,"phone"?: string | null,"price_adjusted"?: boolean,"price_adjustment_reason"?: string | null,"price_gross"?: number | null,"price_net"?: number | null,"price_snapshot"?: Json | null,"price_vat"?: number | null,"reference"?: string,"requested_end"?: string,"requested_hours"?: number,"requested_participants"?: number,"requested_start"?: string,"source_room_id"?: string | null,"space_type"?: string,"start_at"?: string,"status"?: string,"status_reason"?: string | null,"updated_at"?: string,"user_id"?: string | null
+                    "alternative_end"?: string | null,"alternative_start"?: string | null,"assigned_desk_ids"?: string[],"assigned_room_id"?: string | null,"assigned_workspace_id"?: string | null,"booking_id"?: string | null,"booking_unit"?: string,"company"?: string | null,"created_at"?: string,"email"?: string,"end_at"?: string,"estimate_gross"?: number | null,"estimate_snapshot"?: Json | null,"full_name"?: string,"id"?: string,"locale"?: string,"message"?: string | null,"package_id"?: string | null,"participants"?: number,"phone"?: string | null,"price_adjusted"?: boolean,"price_adjustment_reason"?: string | null,"price_gross"?: number | null,"price_net"?: number | null,"price_snapshot"?: Json | null,"preferred_workspace_id"?: string | null,"price_vat"?: number | null,"reference"?: string,"requested_end"?: string,"requested_hours"?: number | null,"requested_participants"?: number,"requested_start"?: string,"source_room_id"?: string | null,"space_type"?: string,"start_at"?: string,"status"?: string,"status_reason"?: string | null,"unit_count"?: number | null,"updated_at"?: string,"user_id"?: string | null
                   }
                   Relationships: [
                     {
@@ -182,6 +182,12 @@ isOneToOne: false
     },{
       foreignKeyName: "booking_requests_assigned_workspace_id_fkey"
       columns: ["assigned_workspace_id"]
+isOneToOne: false
+      referencedRelation: "workspaces"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "booking_requests_preferred_workspace_id_fkey"
+      columns: ["preferred_workspace_id"]
 isOneToOne: false
       referencedRelation: "workspaces"
       referencedColumns: ["id"]
@@ -683,6 +689,21 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"booking_desks": {
+                  Row: { "booking_id": string,"created_at": string,"desk_id": string,"end_at": string,"id": string,"start_at": string,"workspace_id": string }
+                  Insert: { "booking_id": string,"created_at"?: string,"desk_id": string,"end_at": string,"id"?: string,"start_at": string,"workspace_id": string }
+                  Update: { "booking_id"?: string,"created_at"?: string,"desk_id"?: string,"end_at"?: string,"id"?: string,"start_at"?: string,"workspace_id"?: string }
+                  Relationships: [
+                    { foreignKeyName: "booking_desks_booking_id_fkey"; columns: ["booking_id"]; isOneToOne: false; referencedRelation: "bookings"; referencedColumns: ["id"] },
+                    { foreignKeyName: "booking_desks_desk_id_fkey"; columns: ["desk_id"]; isOneToOne: false; referencedRelation: "workspace_desks"; referencedColumns: ["id"] }
+                  ]
+                },"workspace_desks": {
+                  Row: { "active": boolean,"created_at": string,"id": string,"label": string,"position": number,"workspace_id": string }
+                  Insert: { "active"?: boolean,"created_at"?: string,"id"?: string,"label": string,"position": number,"workspace_id": string }
+                  Update: { "active"?: boolean,"created_at"?: string,"id"?: string,"label"?: string,"position"?: number,"workspace_id"?: string }
+                  Relationships: [
+                    { foreignKeyName: "workspace_desks_workspace_id_fkey"; columns: ["workspace_id"]; isOneToOne: false; referencedRelation: "workspaces"; referencedColumns: ["id"] }
+                  ]
                 },"workspace_images": {
                   Row: {
                     "created_at": string,"display_order": number,"id": string,"is_cover": boolean,"media_id": string,"workspace_id": string
@@ -710,13 +731,13 @@ isOneToOne: false
                   ]
                 },"workspaces": {
                   Row: {
-                    "capacity": number,"created_at": string,"desk_number": string | null,"display_order": number,"featured": boolean,"floor": string,"full_description_de": string,"full_description_en": string,"id": string,"name": string,"price_daily": number | null,"price_hourly": number | null,"public_visible": boolean,"short_description_de": string,"short_description_en": string,"slug": string,"status": string,"updated_at": string,"zone": string
+                    "capacity": number,"created_at": string,"desk_number": string | null,"display_order": number,"featured": boolean,"floor": string,"full_description_de": string,"full_description_en": string,"id": string,"name": string,"price_daily": number | null,"price_monthly": number | null,"price_hourly": number | null,"public_visible": boolean,"short_description_de": string,"short_description_en": string,"slug": string,"status": string,"updated_at": string,"zone": string
                   }
                   Insert: {
-                    "capacity"?: number,"created_at"?: string,"desk_number"?: string | null,"display_order"?: number,"featured"?: boolean,"floor"?: string,"full_description_de"?: string,"full_description_en"?: string,"id"?: string,"name": string,"price_daily"?: number | null,"price_hourly"?: number | null,"public_visible"?: boolean,"short_description_de"?: string,"short_description_en"?: string,"slug": string,"status"?: string,"updated_at"?: string,"zone"?: string
+                    "capacity"?: number,"created_at"?: string,"desk_number"?: string | null,"display_order"?: number,"featured"?: boolean,"floor"?: string,"full_description_de"?: string,"full_description_en"?: string,"id"?: string,"name": string,"price_daily"?: number | null,"price_monthly?": number | null,"price_hourly"?: number | null,"public_visible"?: boolean,"short_description_de"?: string,"short_description_en"?: string,"slug": string,"status"?: string,"updated_at"?: string,"zone"?: string
                   }
                   Update: {
-                    "capacity"?: number,"created_at"?: string,"desk_number"?: string | null,"display_order"?: number,"featured"?: boolean,"floor"?: string,"full_description_de"?: string,"full_description_en"?: string,"id"?: string,"name"?: string,"price_daily"?: number | null,"price_hourly"?: number | null,"public_visible"?: boolean,"short_description_de"?: string,"short_description_en"?: string,"slug"?: string,"status"?: string,"updated_at"?: string,"zone"?: string
+                    "capacity"?: number,"created_at"?: string,"desk_number"?: string | null,"display_order"?: number,"featured"?: boolean,"floor"?: string,"full_description_de"?: string,"full_description_en"?: string,"id"?: string,"name"?: string,"price_daily"?: number | null,"price_monthly?": number | null,"price_hourly"?: number | null,"public_visible"?: boolean,"short_description_de"?: string,"short_description_en"?: string,"slug"?: string,"status"?: string,"updated_at"?: string,"zone"?: string
                   }
                   Relationships: [
                     
@@ -766,6 +787,17 @@ isOneToOne: false
                            },
 "admin_update_booking_request":
 { Args: { "p_adjustment_reason": string,"p_end": string,"p_event_type": string,"p_note": string,"p_participants": number,"p_price_adjusted": boolean,"p_price_gross": number,"p_price_net": number,"p_price_snapshot": Json,"p_price_vat": number,"p_request_id": string,"p_resource_id": string,"p_resource_type": string,"p_start": string }; Returns: undefined
+                           },
+"admin_assign_workspace_desks":
+{ Args: { "p_desk_ids": string[],"p_note"?: string,"p_request_id": string,"p_workspace_id": string }; Returns: boolean
+                           },
+"admin_update_workspace_request":
+{ Args: { "p_count": number,"p_event_type": string,"p_note": string,"p_participants": number,"p_price_adjusted": boolean,"p_price_gross": number,"p_price_net": number,"p_price_snapshot": Json,"p_price_vat": number,"p_request_id": string,"p_start_date": string,"p_unit": string }; Returns: undefined
+                           },
+"submit_workspace_request":
+{ Args: { "p_company": string,"p_count": number,"p_email": string,"p_estimate": Json,"p_estimate_gross": number,"p_full_name": string,"p_locale": string,"p_message": string,"p_participants": number,"p_phone": string,"p_preferred_workspace_id": string,"p_start_date": string,"p_unit": string,"p_user_id": string }; Returns: {
+              "reference": string,"request_id": string
+            }[]
                            },
 "admin_utilization":
 { Args: { "p_from": string,"p_to": string }; Returns: {

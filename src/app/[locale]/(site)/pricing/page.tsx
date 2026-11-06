@@ -3,7 +3,7 @@ import { getTranslations, setRequestLocale } from "next-intl/server";
 import { Send, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PriceCalculator } from "@/components/pricing/price-calculator";
-import { loadPricingConfig } from "@/lib/pricing/server";
+import { loadPricingConfig, loadWorkspacePrices } from "@/lib/pricing/server";
 import { formatCents, formatVatRate, hourlyRate, type PricingPackage } from "@/lib/pricing/calc";
 import { localizeHref } from "@/lib/href";
 import { buildMetadata } from "@/lib/seo";
@@ -23,7 +23,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function PricingPage({ params }: Props) {
   const locale = (await params).locale as Locale;
   setRequestLocale(locale);
-  const [t, config] = await Promise.all([getTranslations({ locale, namespace: "pricing" }), loadPricingConfig()]);
+  const [t, config, workspaces] = await Promise.all([getTranslations({ locale, namespace: "pricing" }), loadPricingConfig(), loadWorkspacePrices()]);
   const f = (c: number) => formatCents(c, locale);
   const name = (p: PricingPackage) => (locale === "de" ? p.nameDe : p.nameEn);
   const description = (p: PricingPackage) => (locale === "de" ? p.descriptionDe : p.descriptionEn);
@@ -53,7 +53,7 @@ export default async function PricingPage({ params }: Props) {
       </section>
 
       <div className="mx-auto max-w-7xl space-y-16 px-4 py-12 sm:px-6 sm:py-16">
-        <PriceCalculator config={config} />
+        <PriceCalculator config={config} workspaces={workspaces} />
 
         {hourly.length ? (
           <section className="space-y-8">
@@ -135,6 +135,36 @@ export default async function PricingPage({ params }: Props) {
               ))}
             </div>
             <p className="mt-3 text-xs text-muted-foreground">{vatNote}</p>
+          </section>
+        ) : null}
+
+        {workspaces.length ? (
+          <section>
+            <h2 className="text-2xl font-bold tracking-tight">{t("workspace.title")}</h2>
+            <p className="mt-1 text-muted-foreground">{t("workspace.subtitle")}</p>
+            <div className="mt-5 overflow-x-auto rounded-2xl border">
+              <table className="w-full min-w-[26rem] text-sm" data-testid="workspace-prices">
+                <thead className="bg-muted/60 text-left">
+                  <tr>
+                    <th scope="col" className="px-4 py-3 font-semibold">{t("workspace.name")}</th>
+                    <th scope="col" className="px-4 py-3 font-semibold">{t("workspace.seats")}</th>
+                    <th scope="col" className="px-4 py-3 text-right font-semibold">{t("workspace.perDay")}</th>
+                    <th scope="col" className="px-4 py-3 text-right font-semibold">{t("workspace.perMonth")}</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y">
+                  {workspaces.map((w) => (
+                    <tr key={w.id}>
+                      <td className="px-4 py-2.5 font-medium">{w.name}</td>
+                      <td className="px-4 py-2.5 tabular-nums">{w.capacity}</td>
+                      <td className="px-4 py-2.5 text-right font-semibold tabular-nums">{w.dayCents !== null ? f(w.dayCents) : t("onRequest")}</td>
+                      <td className="px-4 py-2.5 text-right font-semibold tabular-nums">{w.monthCents !== null ? f(w.monthCents) : t("onRequest")}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <p className="mt-2 text-xs text-muted-foreground">{t("workspace.tableNote")} {vatNote}</p>
           </section>
         ) : null}
 

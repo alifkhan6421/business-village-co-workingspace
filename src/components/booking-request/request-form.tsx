@@ -1,17 +1,18 @@
 "use client";
 import { useMemo, useRef, useState, useTransition } from "react";
 import { useLocale, useTranslations } from "next-intl";
-import { CalendarDays, CheckCircle2, Clock, DoorOpen, Loader2, Send, Users } from "lucide-react";
+import { CalendarDays, CheckCircle2, Clock, DoorOpen, Laptop, Loader2, Send, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input, NativeSelect, Textarea } from "@/components/ui/input";
 import { Field } from "@/components/ui/label";
 import { FormAlert } from "@/components/forms/form-alert";
 import { useErrorText, useFieldErrorText } from "@/components/forms/use-error-text";
 import { EstimatePanel } from "@/components/pricing/estimate-panel";
-import { activeCategories, CategoryPicker } from "@/components/pricing/category-picker";
+import { activeCategories, CategoryPicker, type BookCategory } from "@/components/pricing/category-picker";
+import { WorkspaceCountSelect, WorkspaceEstimate, WorkspaceUnitPicker } from "@/components/pricing/workspace-estimate";
 import { submitBookingRequest } from "@/lib/booking-requests/actions";
 import { localizeHref } from "@/lib/href";
-import { hourBounds, type PricingCategory, type PricingConfig } from "@/lib/pricing/calc";
+import { hourBounds, workspaceLastDay, WORKSPACE_MAX_UNITS, type PricingCategory, type PricingConfig, type WorkspacePrice, type WorkspaceUnit } from "@/lib/pricing/calc";
 import type { Locale } from "@/i18n/routing";
 
 type Settings = { dayStart: string; dayEnd: string; slotMinutes: number; weekdays: number[]; maxDaysAhead: number };
@@ -39,13 +40,27 @@ export function BookingRequestForm({
   initial,
   room,
   user,
+  workspaces = [],
 }: {
   config: PricingConfig;
   settings: Settings;
   today: string;
-  initial: { date?: string; start?: string; hours?: number; people?: number; packageId?: string; category?: PricingCategory };
+  initial: {
+    date?: string;
+    start?: string;
+    hours?: number;
+    people?: number;
+    packageId?: string;
+    category?: PricingCategory;
+    space?: "workspace";
+    unit?: WorkspaceUnit;
+    count?: number;
+    workspace?: string;
+  };
   room: { slug: string; name: string; capacity: number } | null;
   user: { name: string; email: string; phone: string; company: string } | null;
+  /** Bookable shared workspaces (desks per day or per month). */
+  workspaces?: WorkspacePrice[];
 }) {
   const t = useTranslations("request");
   const locale = useLocale() as Locale;
@@ -61,10 +76,17 @@ export function BookingRequestForm({
   const [hours, setHours] = useState(Math.min(Math.max(initial.hours ?? 4, 1), maxHours));
   const [people, setPeople] = useState(initial.people ? String(initial.people) : room ? String(room.capacity) : "");
   const [packageId, setPackageId] = useState<string | null>(initial.packageId ?? null);
-  // Public requests are for rooms only (meeting rooms, the event stairs or the entire venue).
-  const [category, setCategory] = useState<PricingCategory>(
-    config.packages.find((p) => p.id === initial.packageId)?.category ?? initial.category ?? activeCategories(config)[0] ?? "meeting",
+  // Meeting rooms, the event stairs, the entire venue, or a desk in a shared workspace.
+  const [category, setCategory] = useState<BookCategory>(
+    initial.space === "workspace" && workspaces.length
+      ? "workspace"
+      : (config.packages.find((p) => p.id === initial.packageId)?.category ?? initial.category ?? activeCategories(config)[0] ?? "meeting"),
   );
+  const isWorkspace = category === "workspace";
+  const [unit, setUnit] = useState<WorkspaceUnit>(initial.unit ?? "day");
+  const [units, setUnits] = useState(Math.min(Math.max(initial.count ?? 1, 1), WORKSPACE_MAX_UNITS[initial.unit ?? "day"]));
+  const [workspaceId, setWorkspaceId] = useState(workspaces.some((w) => w.id === initial.workspace) ? initial.workspace! : "");
+  const maxSeats = Math.max(0, ...workspaces.map((w) => w.capacity));
   const [contact, setContact] = useState<Contact>({
     fullName: user?.name ?? "",
     email: user?.email ?? "",
@@ -79,7 +101,8 @@ export function BookingRequestForm({
   const [pending, startTransition] = useTransition();
 
   const participants = Number(people);
-  const validPeople = Number.isInteger(participants) && participants >= 1 && participants <= 1000;
+  const validPeople = Number.isInteger(participants) && participants >= 1 && participants <= (isWorkspace ? maxSeats : 1000);
+  const lastDay = isWorkspace && date ? workspaceLastDay(unit, date, units, settings.weekdays) : null;
 
   // Start times that leave room for the chosen duration before closing time.
   const startTimes = useMemo(() => {
@@ -97,8 +120,8 @@ export function BookingRequestForm({
     if (!date) errs.date = "required";
     else if (date < today) errs.date = "dateInPast";
     else if (date > maxDate) errs.date = "tooFarAhead";
-    else if (!settings.weekdays.includes(isoWeekday(date))) errs.date = "closedDay";
-    if (!startValue) errs.start = "required";
+    else if ((!isWorkspace || unit === "day") && !settings.weekdays.includes(isoWeekday(date))) errs.date = "closedDay";
+    if (!isWorkspace && !startValue) errs.start = "required";
     if (!validPeople) errs.participants = "invalidNumber";
     if (!contact.fullName.trim()) errs.fullName = "required";
     if (!EMAIL_RE.test(contact.email.trim())) errs.email = contact.email.trim() ? "invalidEmail" : "required";
@@ -116,17 +139,11 @@ export function BookingRequestForm({
     }
     startTransition(async () => {
       try {
-        const res = await submitBookingRequest({
-          date,
-          start: startValue,
-          hours,
-          participants,
-          spaceType: "room",
-          packageId: packageId ?? "",
-          room: room?.slug,
-          ...contact,
-          locale,
-        });
+        const res = await submitBookingRequest(
+          isWorkspace
+            ? { spaceType: "workspace", unit, date, count: units, participants, workspaceId, ...contact, locale }
+            : { date, start: startValue, hours, participants, spaceType: "room", packageId: packageId ?? "", room: room?.slug, ...contact, locale },
+        );
         if (res.ok && res.data) {
           setDone(res.data.reference);
           requestAnimationFrame(() => topRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }));
@@ -174,12 +191,49 @@ export function BookingRequestForm({
             <CategoryPicker
               config={config}
               value={category}
+              workspace={workspaces.length > 0}
               onChange={(c) => {
                 setCategory(c);
                 setPackageId(null);
+                setFieldErrors({});
+                if (c === "workspace" && participants > maxSeats) setPeople("1");
               }}
               className="mt-5"
             />
+            {isWorkspace ? (
+              <div className="mt-5 grid gap-4 sm:grid-cols-2" data-testid="workspace-fields">
+                <p className="flex items-start gap-2 text-sm text-muted-foreground sm:col-span-2">
+                  <Laptop className="mt-0.5 h-4 w-4 shrink-0" /> {t("workspaceHint")}
+                </p>
+                <WorkspaceUnitPicker
+                  className="sm:col-span-2"
+                  value={unit}
+                  onChange={(u) => {
+                    setUnit(u);
+                    setUnits(1);
+                  }}
+                />
+                <Field label={t("startDate")} htmlFor="rq-date" error={dateText(fieldErrors.date)}>
+                  <Input id="rq-date" type="date" value={date} min={today} max={maxDate} onChange={(e) => setDate(e.target.value)} aria-invalid={!!fieldErrors.date} required />
+                </Field>
+                <Field label={unit === "day" ? t("days") : t("months")} htmlFor="rq-units" error={fe("count")} hint={unit === "day" ? t("daysHint") : t("monthsHint")}>
+                  <WorkspaceCountSelect id="rq-units" unit={unit} value={units} onChange={setUnits} />
+                </Field>
+                <Field label={t("participants")} htmlFor="rq-people" error={fe("participants")} hint={t("seatsHint", { count: maxSeats })}>
+                  <Input id="rq-people" type="number" inputMode="numeric" min={1} max={maxSeats} value={people} onChange={(e) => setPeople(e.target.value)} aria-invalid={!!fieldErrors.participants} required />
+                </Field>
+                <Field label={t("preferredWorkspace")} htmlFor="rq-workspace" hint={t("preferredHint")}>
+                  <NativeSelect id="rq-workspace" value={workspaceId} onChange={(e) => setWorkspaceId(e.target.value)}>
+                    <option value="">{t("noPreference")}</option>
+                    {workspaces.map((w) => (
+                      <option key={w.id} value={w.id} disabled={validPeople && w.capacity < participants}>
+                        {w.name} · {t("seats", { count: w.capacity })}
+                      </option>
+                    ))}
+                  </NativeSelect>
+                </Field>
+              </div>
+            ) : (
             <div className="mt-5 grid gap-4 sm:grid-cols-2">
               <Field label={t("date")} htmlFor="rq-date" error={dateText(fieldErrors.date)}>
                 <Input id="rq-date" type="date" value={date} min={today} max={maxDate} onChange={(e) => setDate(e.target.value)} aria-invalid={!!fieldErrors.date} required />
@@ -202,6 +256,7 @@ export function BookingRequestForm({
                 <Input id="rq-people" type="number" inputMode="numeric" min={1} max={1000} value={people} onChange={(e) => setPeople(e.target.value)} aria-invalid={!!fieldErrors.participants} required />
               </Field>
             </div>
+            )}
           </section>
 
           <section className="rounded-2xl border bg-card p-5 shadow-xs sm:p-8">
@@ -240,10 +295,24 @@ export function BookingRequestForm({
                   ? new Intl.DateTimeFormat(locale === "de" ? "de-DE" : "en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric", timeZone: "UTC" }).format(new Date(`${date}T12:00:00Z`))
                   : <span className="text-muted-foreground">{t("noDate")}</span>}
               </li>
+              {isWorkspace ? (
+                <li className="flex items-center gap-2.5" data-testid="workspace-period">
+                  <Clock className="h-4 w-4 shrink-0 text-muted-foreground" />
+                  <span>
+                    {t(unit === "day" ? "daysCount" : "monthsCount", { count: units })}
+                    {lastDay ? (
+                      <span className="text-muted-foreground">
+                        {" "}· {t("until", { date: new Intl.DateTimeFormat(locale === "de" ? "de-DE" : "en-GB", { weekday: "short", day: "numeric", month: "short", year: "numeric", timeZone: "UTC" }).format(new Date(`${lastDay}T12:00:00Z`)) })}
+                      </span>
+                    ) : null}
+                  </span>
+                </li>
+              ) : (
               <li className="flex items-center gap-2.5 tabular-nums">
                 <Clock className="h-4 w-4 shrink-0 text-muted-foreground" />
                 {startValue ? `${startValue} – ${endLabel}` : "–"} · {t("hoursOption", { count: hours })}
               </li>
+              )}
               <li className="flex items-center gap-2.5">
                 <Users className="h-4 w-4 shrink-0 text-muted-foreground" />
                 {validPeople ? t("peopleCount", { count: participants }) : "–"}
@@ -251,7 +320,11 @@ export function BookingRequestForm({
             </ul>
           </div>
           <div className="border-t pt-5">
-            <EstimatePanel config={config} hours={hours} participants={validPeople ? participants : 0} category={category} packageId={packageId} onPackageChange={setPackageId} locale={locale} />
+            {isWorkspace ? (
+              <WorkspaceEstimate config={config} workspaces={workspaces} unit={unit} units={units} participants={validPeople ? participants : 0} preferredId={workspaceId || null} locale={locale} />
+            ) : (
+              <EstimatePanel config={config} hours={hours} participants={validPeople ? participants : 0} category={category as PricingCategory} packageId={packageId} onPackageChange={setPackageId} locale={locale} />
+            )}
           </div>
           {error ? <FormAlert>{error === "validation" ? t("fixErrors") : errText(error)}</FormAlert> : null}
           <p className="text-xs text-muted-foreground">
