@@ -13,6 +13,7 @@ import { DeleteButton } from "./delete-button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ResourceCardActions } from "./resource-card-actions";
+import { DeskLabelInput } from "./desk-label";
 import { formatPrice } from "@/lib/price";
 import { cn } from "@/lib/utils";
 import { buttonVariants } from "@/components/ui/button";
@@ -20,7 +21,7 @@ import { EmptyState } from "@/components/ui/states";
 import { deleteResource, type ResourceKind } from "@/lib/admin/resources";
 import type { MediaItem } from "@/lib/admin/media";
 import { localizeHref } from "@/lib/href";
-import { todayBerlin } from "@/lib/time";
+import { berlinToUtc, todayBerlin } from "@/lib/time";
 import { toAmenityView } from "@/lib/resources";
 import type { Locale } from "@/i18n/routing";
 
@@ -108,7 +109,22 @@ export async function ResourceListPage({ kind, locale, q, status }: { kind: Reso
                       </p>
                     </div>
                     <p className="shrink-0 text-right text-sm">
-                      {hourly !== null ? (
+                      {kind === "workspace" && (daily !== null || r.price_monthly != null) ? (
+                        <>
+                          {daily !== null ? (
+                            <span className="block">
+                              <span className="font-semibold">{formatPrice(daily, locale)}</span>
+                              <span className="text-muted-foreground"> {tsite("perPersonDay")}</span>
+                            </span>
+                          ) : null}
+                          {r.price_monthly != null && r.price_monthly !== "" ? (
+                            <span className="block">
+                              <span className="font-semibold">{formatPrice(Number(r.price_monthly), locale)}</span>
+                              <span className="text-muted-foreground"> {tsite("perPersonMonth")}</span>
+                            </span>
+                          ) : null}
+                        </>
+                      ) : hourly !== null ? (
                         <>
                           <span className="font-semibold">{formatPrice(hourly, locale)}</span>
                           <span className="text-muted-foreground"> {tsite("perHour")}</span>
@@ -125,7 +141,7 @@ export async function ResourceListPage({ kind, locale, q, status }: { kind: Reso
                   </div>
                   <p className="mt-2 flex items-center gap-3 text-xs text-muted-foreground">
                     <span className="inline-flex items-center gap-1">
-                      <Users className="h-3.5 w-3.5" /> {r.capacity}
+                      <Users className="h-3.5 w-3.5" /> {kind === "workspace" ? t("resources.seatsCount", { count: r.capacity }) : r.capacity}
                     </span>
                     <span className="inline-flex items-center gap-1">
                       <ImageIcon className="h-3.5 w-3.5" /> {t("resources.imagesCount", { count: imgs.length })}
@@ -234,6 +250,7 @@ export async function ResourceEditPage({ kind, locale, id }: { kind: ResourceKin
             />
           </CardContent>
         </Card>
+        {kind === "workspace" ? <WorkspaceDesksCard workspaceId={row.id} locale={locale} /> : null}
         <Card>
           <CardHeader>
             <CardTitle className="text-base">{t("blocks.title")}</CardTitle>
@@ -245,5 +262,97 @@ export async function ResourceEditPage({ kind, locale, id }: { kind: ResourceKin
         </Card>
       </div>
     </>
+  );
+}
+
+const OCCUPANCY_DAYS = 14;
+
+/** Desks of a shared workspace (renamable) and who holds each desk over the next two weeks. */
+async function WorkspaceDesksCard({ workspaceId, locale }: { workspaceId: string; locale: Locale }) {
+  const t = await getTranslations({ locale, namespace: "admin" });
+  const supabase = await createClient();
+  const today = todayBerlin();
+  const days = Array.from({ length: OCCUPANCY_DAYS }, (_, i) => {
+    const [y, m, d] = today.split("-").map(Number);
+    return new Date(Date.UTC(y, m - 1, d + i)).toISOString().slice(0, 10);
+  });
+  const from = berlinToUtc(days[0], "00:00")!;
+  const to = berlinToUtc(days[days.length - 1], "23:59")!;
+  const [{ data: desks }, { data: held }] = await Promise.all([
+    supabase.from("workspace_desks").select("id, label, position, active").eq("workspace_id", workspaceId).order("position"),
+    supabase
+      .from("booking_desks")
+      .select("desk_id, start_at, end_at, booking:bookings!inner(id, booking_reference, status)")
+      .eq("workspace_id", workspaceId)
+      .lt("start_at", to.toISOString())
+      .gt("end_at", from.toISOString())
+      .in("booking.status", ["pending", "confirmed", "completed"]),
+  ]);
+  type Held = { desk_id: string; start_at: string; end_at: string; booking: { id: string; booking_reference: string } | null };
+  const holds = (held ?? []) as unknown as Held[];
+  const active = (desks ?? []).filter((d) => d.active);
+  const dayFmt = new Intl.DateTimeFormat(locale === "de" ? "de-DE" : "en-GB", { weekday: "short", day: "numeric", timeZone: "UTC" });
+  const holder = (deskId: string, day: string) => {
+    const noon = berlinToUtc(day, "12:00")!.getTime();
+    return holds.find((h) => h.desk_id === deskId && new Date(h.start_at).getTime() <= noon && new Date(h.end_at).getTime() > noon);
+  };
+  const base = `/${locale}/admin`;
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-base">{t("resources.desksTitle")}</CardTitle>
+        <CardDescription>{t("resources.desksSubtitle")}</CardDescription>
+      </CardHeader>
+      <CardContent>
+        {active.length === 0 ? (
+          <p className="text-sm text-muted-foreground">{t("resources.noDesks")}</p>
+        ) : (
+          <div className="overflow-x-auto" data-testid="desk-occupancy">
+            <table className="w-full min-w-[44rem] border-separate border-spacing-1 text-xs">
+              <thead>
+                <tr>
+                  <th scope="col" className="w-48 text-left font-medium text-muted-foreground">{t("resources.desk")}</th>
+                  {days.map((d) => (
+                    <th key={d} scope="col" className="font-medium text-muted-foreground">{dayFmt.format(new Date(`${d}T12:00:00Z`))}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {active.map((d) => (
+                  <tr key={d.id}>
+                    <td>
+                      <DeskLabelInput id={d.id} label={d.label} position={d.position} />
+                    </td>
+                    {days.map((day) => {
+                      const h = holder(d.id, day);
+                      return (
+                        <td key={day} className="p-0">
+                          {h?.booking ? (
+                            <Link
+                              href={`${base}/bookings/${h.booking.id}`}
+                              title={h.booking.booking_reference}
+                              className="block h-9 rounded-md bg-primary/80 hover:bg-primary"
+                            >
+                              <span className="sr-only">{h.booking.booking_reference}</span>
+                            </Link>
+                          ) : (
+                            <span className="block h-9 rounded-md bg-muted" aria-label={t("resources.deskFree")} />
+                          )}
+                        </td>
+                      );
+                    })}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <p className="mt-2 flex items-center gap-4 text-xs text-muted-foreground">
+              <span className="inline-flex items-center gap-1.5"><span className="h-3 w-3 rounded bg-primary/80" /> {t("resources.deskTaken")}</span>
+              <span className="inline-flex items-center gap-1.5"><span className="h-3 w-3 rounded bg-muted" /> {t("resources.deskFree")}</span>
+            </p>
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }

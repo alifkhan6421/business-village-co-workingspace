@@ -109,10 +109,12 @@ export function QuoteBreakdown({ quote, config, locale, showName = true }: { quo
                       : t("lineFixedUnits", { units: l.units, unit: t(`unit.${l.unit}`), price: f(l.priceCents) })
                     : l.kind === "per_person"
                       ? t("linePerPerson", { participants: l.participants, price: f(l.priceCents) })
-                      : t("lineExtraPersons", { persons: l.persons, price: f(l.priceCents) })}
+                      : l.kind === "workspace"
+                        ? t("lineWorkspace", { participants: l.participants, units: t(`workspace.count.${l.unit}`, { count: l.units }), price: f(l.priceCents) })
+                        : t("lineExtraPersons", { persons: l.persons, price: f(l.priceCents) })}
             </dt>
             <dd className="shrink-0 tabular-nums">
-              {l.kind === "per_person" && l.maxAmountCents !== null ? `${f(l.amountCents)} – ${f(l.maxAmountCents)}` : f(l.amountCents)}
+              {(l.kind === "per_person" || l.kind === "workspace") && l.maxAmountCents !== null ? `${f(l.amountCents)} – ${f(l.maxAmountCents)}` : f(l.amountCents)}
             </dd>
           </div>
         ))}

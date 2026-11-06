@@ -158,7 +158,9 @@
       "invalid_customer": "Bitte wählen Sie ein Mitglied oder geben Sie Gastdaten ein.",
       "not_found": "Die Buchung wurde nicht gefunden.",
       "invalid_status": "Ungültiger Status.",
-      "direct_booking_disabled": "Online-Direktbuchung ist nicht mehr möglich. Bitte senden Sie eine Buchungsanfrage."
+      "direct_booking_disabled": "Online-Direktbuchung ist nicht mehr möglich. Bitte senden Sie eine Buchungsanfrage.",
+      "requests_only": "Arbeitsplätze werden über Buchungsanfragen gebucht.",
+      "desks_mismatch": "Der Arbeitsraum dieser Buchung wird über die Anfrage (Plätze zuweisen) geändert."
     },
     "emailFailed": "Die E-Mail konnte nicht gesendet werden. Details im E-Mail-Protokoll.",
     "request": {
@@ -183,14 +185,21 @@
       "invalid_customer": "Bitte wählen Sie ein Mitglied oder geben Sie Gastdaten ein.",
       "not_found": "Die Buchung wurde nicht gefunden.",
       "invalid_status": "Ungültiger Status.",
-      "invalid_duration": "Ungültige Dauer.",
-      "invalid_participants": "Ungültige Personenzahl.",
+      "invalid_duration": "Bitte wählen Sie einen gültigen Zeitraum.",
+      "invalid_participants": "Bitte geben Sie eine gültige Personenzahl ein.",
       "invalid_value": "Ungültige Eingabe.",
       "room_required": "Bitte weisen Sie zuerst einen Raum oder Arbeitsplatz zu.",
       "reason_required": "Bitte geben Sie einen Grund an.",
       "invalid_transition": "Dieser Statuswechsel ist nicht möglich.",
-      "alternative_required": "Bitte geben Sie einen alternativen Termin an."
-    }
+      "alternative_required": "Bitte geben Sie einen alternativen Termin an.",
+      "desks_required": "Bitte weisen Sie zuerst für jede Person einen Platz zu.",
+      "desk_count_mismatch": "Bitte wählen Sie genau einen Platz pro Person.",
+      "desk_unavailable": "Mindestens einer der gewählten Plätze ist in diesem Zeitraum bereits belegt.",
+      "invalid_desks": "Die gewählten Plätze gehören nicht zu diesem Arbeitsraum.",
+      "requests_only": "Arbeitsplätze werden über Buchungsanfragen gebucht.",
+      "desks_mismatch": "Der Arbeitsraum dieser Buchung wird über „Plätze zuweisen“ geändert."
+    },
+    "desks_in_use": "Es gibt noch Buchungen auf den Plätzen, die wegfallen würden. Verlegen Sie diese zuerst oder warten Sie, bis sie abgelaufen sind."
   },
   "status": {
     "booking": {
@@ -308,7 +317,16 @@
     "proposedTime": "Vorgeschlagener Termin",
     "additionalRequests": "Zusätzliche Wünsche",
     "customerLanguage": "Sprache",
-    "openRequestInAdmin": "Anfrage im Adminbereich öffnen"
+    "openRequestInAdmin": "Anfrage im Adminbereich öffnen",
+    "desks": "{count, plural, one {Platz {desks}} other {Plätze {desks}}}",
+    "period": "Zeitraum",
+    "bookedFor": "Gebucht für",
+    "days": "{count, plural, one {# Tag} other {# Tage}}",
+    "months": "{count, plural, one {# Monat} other {# Monate}}",
+    "space": "Art",
+    "workspaceDesk": "Arbeitsplatz (fester Schreibtisch)",
+    "preferredWorkspace": "Wunsch-Arbeitsraum",
+    "newDesk": "Neuer Arbeitsplatz"
   },
   "auth": {
     "loginTitle": "Anmelden",
@@ -445,7 +463,12 @@
     "requestBooking": "Buchung anfragen",
     "requestTitle": "Diesen Raum anfragen",
     "requestText": "Senden Sie uns Datum, Uhrzeit und Personenzahl. Sie erhalten sofort eine Preisschätzung, und unser Team bestätigt Ihre Buchung persönlich.",
-    "memberBookingTitle": "Direkt buchen (Mitglieder)"
+    "memberBookingTitle": "Direkt buchen (Mitglieder)",
+    "perPersonDay": "pro Person/Tag",
+    "perPersonMonth": "pro Person/Monat",
+    "seatsCount": "{count, plural, one {# Platz} other {# Plätze}}",
+    "monthly": "Monatlich",
+    "workspaceHow": "Jede Person erhält einen festen Schreibtisch in diesem Arbeitsraum, pro Tag oder pro Monat. Senden Sie uns über „Buchung anfragen“ oben Ihre Anfrage, wir weisen Ihnen den Platz mit der Bestätigung zu."
   },
   "booking": {
     "panelTitle": "Buchung",
@@ -838,7 +861,21 @@
       "disable": "Deaktivieren",
       "enabled": "Wieder buchbar.",
       "disabledToast": "Deaktiviert. Nicht mehr buchbar.",
-      "deleteHint": "Nur möglich, wenn es keine Buchungen gibt. Sonst bitte deaktivieren."
+      "deleteHint": "Nur möglich, wenn es keine Buchungen gibt. Sonst bitte deaktivieren.",
+      "seats": "Plätze (Schreibtische)",
+      "seatsHint": "Ein fester Schreibtisch pro Platz. Weniger Plätze sind nur möglich, wenn die wegfallenden nicht gebucht sind.",
+      "pricePersonDay": "Preis pro Person und Tag",
+      "pricePersonMonth": "Preis pro Person und Monat",
+      "priceMonthHint": "Ein Monat ab dem Startdatum der Buchung.",
+      "seatsCount": "{count, plural, one {# Platz} other {# Plätze}}",
+      "deskName": "Name von Platz {position}",
+      "deskRenamed": "Platz umbenannt.",
+      "desksTitle": "Plätze und Belegung",
+      "desksSubtitle": "Jeder Platz ist ein fester Schreibtisch. Die Namen können Sie hier ändern. Grün: belegt in den nächsten 14 Tagen.",
+      "noDesks": "Noch keine Plätze.",
+      "desk": "Platz",
+      "deskFree": "Frei",
+      "deskTaken": "Belegt"
     },
     "blocks": {
       "title": "Sperrzeiten",
@@ -1018,7 +1055,8 @@
         "request_alternative": "Alternativer Termin",
         "request_rejected": "Anfrage abgelehnt",
         "request_cancelled": "Anfrage storniert",
-        "request_message": "Nachricht zur Anfrage"
+        "request_message": "Nachricht zur Anfrage",
+        "request_desk_changed": "Platzwechsel"
       }
     },
     "activity": {
@@ -1450,7 +1488,8 @@
         "price_recalculated": "Preis neu berechnet",
         "price_adjusted": "Preis manuell angepasst",
         "note": "Interne Notiz",
-        "message_sent": "E-Mail an Kunden gesendet"
+        "message_sent": "E-Mail an Kunden gesendet",
+        "desks_changed": "Plätze zugewiesen"
       },
       "emails": "E-Mails",
       "noEmails": "Noch keine E-Mails.",
@@ -1505,7 +1544,36 @@
       "noteAdded": "Notiz gespeichert",
       "messagePlaceholder": "Ihre Nachricht an den Kunden …",
       "sendMessage": "Nachricht senden",
-      "messageSent": "Nachricht gesendet"
+      "messageSent": "Nachricht gesendet",
+      "assignDesksFirst": "Bitte weisen Sie zuerst einen Arbeitsraum und für jede Person einen Platz zu.",
+      "startDate": "Startdatum",
+      "peopleLockedHint": "Bei einer bestätigten Buchung bleibt die Personenzahl fest (ein Platz pro Person).",
+      "peopleDesksHint": "Eine andere Personenzahl hebt die Platzauswahl auf.",
+      "workspace": "Arbeitsraum",
+      "chooseWorkspace": "Arbeitsraum wählen …",
+      "desksFree": "{free} von {total} Plätzen frei",
+      "chooseDesks": "{count, plural, one {Einen Platz wählen} other {# Plätze wählen}}",
+      "deskLabel": "Platz {label}",
+      "deskCurrent": "Aktuell zugewiesen",
+      "deskFree": "Frei",
+      "desksSelected": "{selected} von {count} gewählt",
+      "notifyMove": "Kunden per E-Mail über den neuen Platz informieren",
+      "moveBooking": "Buchung verlegen",
+      "assignDesks": "Plätze zuweisen",
+      "movedEmailed": "Buchung verlegt, der Kunde wurde per E-Mail informiert.",
+      "moved": "Buchung verlegt.",
+      "desksAssigned": "Plätze zugewiesen.",
+      "desksList": "{count, plural, one {Platz {desks}} other {Plätze {desks}}}",
+      "daysShort": "{count, plural, one {# Tag} other {# Tage}}",
+      "monthsShort": "{count, plural, one {# Monat} other {# Monate}}",
+      "preferredWorkspace": "Wunsch",
+      "desksSection": "Arbeitsraum und Plätze",
+      "desksHint": "Wählen Sie einen Arbeitsraum mit genug freien Plätzen und einen Platz pro Person. Danach können Sie bestätigen.",
+      "desksMoveHint": "Die Buchung ist bestätigt. Wählen Sie andere Plätze, um sie zu verlegen; der Kunde erhält eine E-Mail.",
+      "desksClosed": "Diese Anfrage ist abgeschlossen. Öffnen Sie sie erneut, um Plätze zuzuweisen.",
+      "emailDeskChanged": "Platzwechsel",
+      "desksRow": "Plätze",
+      "changeDesks": "Plätze ändern"
     }
   },
   "pricing": {
@@ -1571,7 +1639,8 @@
     "categories": {
       "meeting": "Einen Meetingraum",
       "stairs": "Die Eventtreppe",
-      "venue": "Die ganze Eventlocation"
+      "venue": "Die ganze Eventlocation",
+      "workspace": "Arbeitsplatz"
     },
     "hoursShort": "{count} Std.",
     "fewerPeople": "Eine Person weniger",
@@ -1579,7 +1648,31 @@
     "categoryHints": {
       "meeting": "Bis 10 Personen oder ganzer Raum",
       "stairs": "10–15 € pro Person",
-      "venue": "Treppe & alle Räume"
+      "venue": "Treppe & alle Räume",
+      "workspace": "Fester Schreibtisch, pro Tag oder Monat"
+    },
+    "lineWorkspace": "{participants} × {units} à {price}",
+    "workspace": {
+      "unitLegend": "Abrechnung",
+      "unit": {
+        "day": "Pro Tag",
+        "month": "Pro Monat"
+      },
+      "count": {
+        "day": "{count, plural, one {# Tag} other {# Tage}}",
+        "month": "{count, plural, one {# Monat} other {# Monate}}"
+      },
+      "howLong": "Wie lange?",
+      "rangeNote": "Der Preis hängt vom Arbeitsraum ab, den wir Ihnen zuweisen. Mit einem Wunsch-Arbeitsraum sehen Sie den genauen Preis.",
+      "tooMany": "Unsere Arbeitsräume haben bis zu {count} Plätze. Für größere Gruppen senden Sie uns bitte eine Anfrage für einen Besprechungsraum.",
+      "noPrice": "Für diese Auswahl ist noch kein Preis hinterlegt. Senden Sie uns trotzdem eine Anfrage, wir erstellen Ihnen ein Angebot.",
+      "title": "Arbeitsplätze",
+      "subtitle": "Ihr fester Schreibtisch in einem geteilten Arbeitsraum. Preise pro Person.",
+      "name": "Arbeitsraum",
+      "seats": "Plätze",
+      "perDay": "Pro Person / Tag",
+      "perMonth": "Pro Person / Monat",
+      "tableNote": "Ein Monat läuft ab Ihrem Startdatum bis zum Vortag desselben Datums im Folgemonat. Tage zählen nur Öffnungstage."
     }
   },
   "request": {
@@ -1625,6 +1718,20 @@
     },
     "quickTitle": "Raum anfragen",
     "quickSubtitle": "Datum, Dauer und Personenzahl wählen. Wir melden uns mit einer Bestätigung.",
-    "quickButton": "Anfrage starten"
+    "quickButton": "Anfrage starten",
+    "workspaceHint": "Sie erhalten einen festen Schreibtisch in einem geteilten Arbeitsraum. Wir weisen Ihnen den Platz mit der Bestätigung zu.",
+    "startDate": "Startdatum",
+    "days": "Anzahl Tage",
+    "months": "Anzahl Monate",
+    "daysHint": "Nur Öffnungstage zählen.",
+    "monthsHint": "Ab dem Startdatum, z. B. 15.11. bis 14.12.",
+    "seatsHint": "Ein Platz pro Person, bis zu {count} in einem Arbeitsraum.",
+    "preferredWorkspace": "Wunsch-Arbeitsraum (optional)",
+    "preferredHint": "Wir berücksichtigen Ihren Wunsch, wenn dort genug Plätze frei sind.",
+    "noPreference": "Keine Präferenz",
+    "seats": "{count, plural, one {# Platz} other {# Plätze}}",
+    "daysCount": "{count, plural, one {# Tag} other {# Tage}}",
+    "monthsCount": "{count, plural, one {# Monat} other {# Monate}}",
+    "until": "bis {date}"
   }
 }

@@ -18,8 +18,12 @@ export async function ResourceCard({ resource, locale }: { resource: ResourceVie
   const amenities = resource.amenities.slice(0, 4).map((a) => a.name);
   const rest = resource.amenities.length - amenities.length;
   const location = [resource.floor, resource.zone].filter(Boolean).join(" · ");
-  const price = resource.priceHourly ?? resource.priceDaily;
-  const priceUnit = resource.priceHourly !== null ? t("perHour") : t("perDay");
+  const ws = resource.type === "workspace";
+  // Workspaces: price per person per day (or per month when only that is set).
+  const price = ws ? (resource.priceDaily ?? resource.priceMonthly) : (resource.priceHourly ?? resource.priceDaily);
+  const priceUnit = ws
+    ? resource.priceDaily !== null ? t("perPersonDay") : t("perPersonMonth")
+    : resource.priceHourly !== null ? t("perHour") : t("perDay");
 
   return (
     <article
@@ -61,11 +65,16 @@ export async function ResourceCard({ resource, locale }: { resource: ResourceVie
         </div>
         <p className="mt-1 flex flex-wrap items-center gap-x-2 text-sm text-muted-foreground">
           <span className="inline-flex items-center gap-1">
-            <Users className="h-3.5 w-3.5" aria-hidden="true" /> {t("upToPersons", { count: resource.capacity })}
+            <Users className="h-3.5 w-3.5" aria-hidden="true" /> {ws ? t("seatsCount", { count: resource.capacity }) : t("upToPersons", { count: resource.capacity })}
           </span>
           {location ? <span aria-hidden="true">·</span> : null}
           {location ? <span>{location}</span> : null}
         </p>
+        {ws && resource.priceDaily !== null && resource.priceMonthly !== null ? (
+          <p className="mt-1 text-sm text-muted-foreground" data-testid="resource-price-month">
+            <span className="font-semibold text-foreground">{formatPrice(resource.priceMonthly, locale)}</span> {t("perPersonMonth")}
+          </p>
+        ) : null}
         {resource.shortDescription ? <p className="mt-3 line-clamp-2 text-sm leading-relaxed text-foreground/80">{resource.shortDescription}</p> : null}
         {amenities.length ? (
           <p className="mt-3 text-[13px] text-muted-foreground">

@@ -43,7 +43,7 @@ const baseSchema = z.object({
   price_hourly: priceSchema,
   price_daily: priceSchema,
 });
-const workspaceSchema = baseSchema.extend({ desk_number: optString(20), zone: optString(40) });
+const workspaceSchema = baseSchema.extend({ desk_number: optString(20), zone: optString(40), price_monthly: priceSchema });
 
 export async function saveResource(kind: ResourceKind, _: unknown, fd: FormData): Promise<ActionResult<{ id: string }>> {
   return adminAction(async (ctx) => {
@@ -64,9 +64,13 @@ export async function saveResource(kind: ResourceKind, _: unknown, fd: FormData)
       short_description_en: stripHtml(v.short_description_en ?? ""),
       full_description_de: sanitizeRichText(v.full_description_de),
       full_description_en: sanitizeRichText(v.full_description_en),
-      ...(kind === "workspace" ? { desk_number: v.desk_number, zone: v.zone ?? "" } : {}),
+      ...(kind === "workspace" ? { zone: v.zone ?? "" } : {}),
     };
-    const withPrices = { ...row, price_hourly: v.price_hourly, price_daily: v.price_daily };
+    // Workspaces are priced per person per day and per month (no hourly price).
+    const withPrices =
+      kind === "workspace"
+        ? { ...row, price_hourly: null, price_daily: v.price_daily, price_monthly: v.price_monthly }
+        : { ...row, price_hourly: v.price_hourly, price_daily: v.price_daily };
     const write = async (values: typeof row) => {
       if (v.id) {
         const { error } = await ctx.supabase.from(TABLE[kind]).update(values as never).eq("id", v.id);
@@ -200,6 +204,18 @@ export async function deleteBlock(id: string): Promise<ActionResult> {
   return adminAction(async (ctx) => {
     const { error } = await ctx.supabase.rpc("admin_delete_block", { p_block_id: id });
     if (error) return fail(dbErrorKey(error));
+    revalidateSite();
+    return { ok: true };
+  });
+}
+
+/** Renames a desk of a shared workspace ("1" → "Fenster links"). */
+export async function renameDesk(id: string, label: string): Promise<ActionResult> {
+  return adminAction(async (ctx) => {
+    const v = z.object({ id: z.uuid(), label: reqString(40) }).safeParse({ id, label: label.trim() });
+    if (!v.success) return fail("validation", zodFieldErrors(v.error));
+    const { error } = await ctx.supabase.from("workspace_desks").update({ label: v.data.label }).eq("id", v.data.id);
+    if (error) return fail(dbErrorKey(error, ""));
     revalidateSite();
     return { ok: true };
   });

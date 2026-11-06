@@ -24,7 +24,8 @@ export type TemplateKey =
   | "request_rejected"
   | "request_alternative"
   | "request_cancelled"
-  | "request_message";
+  | "request_message"
+  | "request_desk_changed";
 
 export const esc = (s: string) =>
   s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
@@ -112,6 +113,15 @@ ${opts.outro ? `<p style="margin:24px 0 0;font-size:15px;line-height:1.65">${esc
     .filter((l) => l !== undefined)
     .join("\n");
   return { html, text };
+}
+
+/** "Montag, 16. November 2026 – Freitag, 20. November 2026" for day and month bookings (end is exclusive midnight). */
+export function formatDayPeriod(start: string, end: string, locale: Locale) {
+  const fmt = new Intl.DateTimeFormat(locale === "de" ? "de-DE" : "en-GB", { timeZone: TIME_ZONE, weekday: "long", day: "numeric", month: "long", year: "numeric" });
+  const last = new Date(new Date(end).getTime() - 12 * 3600000);
+  const a = fmt.format(new Date(start));
+  const b = fmt.format(last);
+  return a === b ? a : `${a} – ${b}`;
 }
 
 export function formatRange(start: string, end: string, locale: Locale) {

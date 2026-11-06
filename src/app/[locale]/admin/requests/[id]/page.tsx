@@ -14,11 +14,12 @@ import {
   RequestStatusActions,
   type SpaceOption,
 } from "@/components/admin/request-forms";
+import { DeskAssignment, WorkspaceDetailsForm, type WorkspaceDeskOption } from "@/components/admin/desk-forms";
 import { QuoteBreakdown } from "@/components/pricing/estimate-panel";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { loadCalendarSettings } from "@/lib/admin/queries";
-import { formatBookingRange } from "@/lib/format-range";
+import { formatBookingRange, formatDayPeriod } from "@/lib/format-range";
 import { berlinDate, berlinTime } from "@/lib/time";
 import { formatCents, toCents, type Quote } from "@/lib/pricing/calc";
 import { loadPricingConfig } from "@/lib/pricing/server";
@@ -58,18 +59,20 @@ export default async function RequestDetailPage({ params }: { params: Promise<{ 
   const supabase = await createClient();
   const { data } = await supabase
     .from("booking_requests")
-    .select("*, room:rooms!booking_requests_assigned_room_id_fkey(name), workspace:workspaces(name), source_room:rooms!booking_requests_source_room_id_fkey(name), package:pricing_packages(name_de, name_en), booking:bookings!booking_requests_booking_id_fkey(booking_reference, status)")
+    .select("*, room:rooms!booking_requests_assigned_room_id_fkey(name), workspace:workspaces!booking_requests_assigned_workspace_id_fkey(name), preferred:workspaces!booking_requests_preferred_workspace_id_fkey(name), source_room:rooms!booking_requests_source_room_id_fkey(name), package:pricing_packages(name_de, name_en), booking:bookings!booking_requests_booking_id_fkey(booking_reference, status)")
     .eq("id", id)
     .maybeSingle();
   if (!data) notFound();
   const r = data as unknown as Tables<"booking_requests"> & {
     room: { name: string } | null;
     workspace: { name: string } | null;
+    preferred: { name: string } | null;
     source_room: { name: string } | null;
     package: { name_de: string; name_en: string } | null;
     booking: { booking_reference: string; status: string } | null;
   };
 
+  const isWs = r.space_type === "workspace" && r.booking_unit !== "hour";
   let bookingQuery = supabase
     .from("bookings")
     .select("id, booking_reference, room_id, workspace_id, start_at, end_at, status, attendees, room:rooms(name), workspace:workspaces(name)")
@@ -79,19 +82,50 @@ export default async function RequestDetailPage({ params }: { params: Promise<{ 
     .order("start_at");
   if (r.booking_id) bookingQuery = bookingQuery.neq("id", r.booking_id);
 
-  const [t, ts, f, settings, pricing, rooms, workspaces, overlaps, blocks, events, emails] = await Promise.all([
+  let deskQuery = supabase
+    .from("booking_desks")
+    .select("desk_id, booking_id, start_at, end_at, booking:bookings!inner(booking_reference, status)")
+    .lt("start_at", r.end_at)
+    .gt("end_at", r.start_at)
+    .in("booking.status", ["pending", "confirmed"]);
+  if (r.booking_id) deskQuery = deskQuery.neq("booking_id", r.booking_id);
+
+  const [t, ts, f, settings, pricing, rooms, workspaces, overlaps, blocks, events, emails, deskBusy] = await Promise.all([
     getTranslations({ locale, namespace: "admin" }),
     getTranslations({ locale, namespace: "status" }),
     getFormatter({ locale }),
     loadCalendarSettings(),
     loadPricingConfig(),
     supabase.from("rooms").select("id, name, capacity, status").order("display_order").order("name"),
-    supabase.from("workspaces").select("id, name, capacity, status").order("display_order").order("name"),
+    supabase.from("workspaces").select("id, name, capacity, status, workspace_desks(id, label, position, active)").order("display_order").order("name"),
     bookingQuery,
     supabase.from("resource_blocks").select("room_id, workspace_id").lt("start_at", r.end_at).gt("end_at", r.start_at),
     supabase.from("booking_request_events").select("id, event_type, from_status, to_status, note, actor_label, created_at, actor:profiles(full_name, email)").eq("request_id", id).order("created_at", { ascending: false }),
     supabase.from("email_logs").select("id, email_type, subject, recipient, status, error_message, created_at").eq("related_booking_request_id", id).order("created_at", { ascending: false }),
+    isWs ? deskQuery : Promise.resolve({ data: [] }),
   ]);
+
+  // Workspaces with their desks, and which desks other reservations hold in this period.
+  type DeskBusyRow = { desk_id: string; start_at: string; end_at: string; booking: { booking_reference: string } | null };
+  const busyDesk = new Map<string, string>();
+  for (const b of (deskBusy.data ?? []) as unknown as DeskBusyRow[]) {
+    busyDesk.set(b.desk_id, `${b.booking?.booking_reference ?? ""} · ${formatDayPeriod(f, b.start_at, b.end_at)}`);
+  }
+  type WsRow = { id: string; name: string; capacity: number; status: string; workspace_desks: { id: string; label: string; position: number; active: boolean }[] };
+  const wsRows = (workspaces.data ?? []) as unknown as WsRow[];
+  const deskOptions: WorkspaceDeskOption[] = wsRows.map((w) => ({
+    id: w.id,
+    name: w.name,
+    capacity: w.capacity,
+    status: w.status,
+    blocked: (blocks.data ?? []).some((b) => b.workspace_id === w.id),
+    desks: [...(w.workspace_desks ?? [])]
+      .filter((d) => d.active || r.assigned_desk_ids.includes(d.id))
+      .sort((a, b) => a.position - b.position)
+      .map((d) => ({ id: d.id, label: d.label, busy: busyDesk.get(d.id) ?? null })),
+  }));
+  const deskLabelById = new Map(wsRows.flatMap((w) => (w.workspace_desks ?? []).map((d) => [d.id, d.label] as const)));
+  const assignedDesks = r.assigned_desk_ids.map((d) => deskLabelById.get(d)).filter(Boolean) as string[];
 
   type Overlap = { id: string; booking_reference: string; room_id: string | null; workspace_id: string | null; start_at: string; end_at: string; status: string; attendees: number; room: { name: string } | null; workspace: { name: string } | null };
   const busy = (overlaps.data ?? []) as unknown as Overlap[];
@@ -101,13 +135,15 @@ export default async function RequestDetailPage({ params }: { params: Promise<{ 
     x.status !== "available" ? "unavailable" : blockedIds.has(x.id) ? "blocked" : busyIds.has(x.id) ? "busy" : x.capacity < r.participants ? "small" : "free";
   const spaces: SpaceOption[] = [
     ...(rooms.data ?? []).map((x) => ({ value: `room:${x.id}`, label: `${x.name} (${x.capacity})`, group: "room" as const, state: state(x) })),
-    ...(workspaces.data ?? []).map((x) => ({ value: `workspace:${x.id}`, label: x.name, group: "workspace" as const, state: state(x) })),
+    ...wsRows.map((x) => ({ value: `workspace:${x.id}`, label: x.name, group: "workspace" as const, state: state(x) })),
   ];
 
   const hours = Math.round((new Date(r.end_at).getTime() - new Date(r.start_at).getTime()) / 3600000);
   const requestedHours = Math.round((new Date(r.requested_end).getTime() - new Date(r.requested_start).getTime()) / 3600000);
   const resource = r.assigned_room_id ? `room:${r.assigned_room_id}` : r.assigned_workspace_id ? `workspace:${r.assigned_workspace_id}` : "";
-  const spaceName = r.room?.name ?? r.workspace?.name ?? null;
+  const spaceName = r.room?.name ?? (r.workspace ? (assignedDesks.length ? `${r.workspace.name} · ${t("requests.desksList", { count: assignedDesks.length, desks: assignedDesks.join(", ") })}` : r.workspace.name) : null);
+  const confirmed = r.status === "confirmed" || r.status === "completed";
+  const range = (a: string, b: string) => (isWs ? formatDayPeriod(f, a, b) : formatBookingRange(f, a, b));
   const estimate = r.estimate_snapshot as Snapshot | null;
   const current = r.price_snapshot as Snapshot | null;
   const money = (v: number | null) => {
@@ -122,7 +158,7 @@ export default async function RequestDetailPage({ params }: { params: Promise<{ 
     <>
       <AdminPageHeader
         title={t("requests.detailTitle", { reference: r.reference })}
-        subtitle={`${r.full_name} · ${formatBookingRange(f, r.start_at, r.end_at)}`}
+        subtitle={`${r.full_name} · ${range(r.start_at, r.end_at)}`}
         back={{ href: `${base}/requests`, label: t("nav.requests") }}
         actions={<StatusBadge kind="request" value={r.status} />}
       />
@@ -138,13 +174,16 @@ export default async function RequestDetailPage({ params }: { params: Promise<{ 
                 <Row label={t("common.status")}><StatusBadge kind="request" value={r.status} /></Row>
                 <Row label={t("requests.spaceType")}>{r.space_type === "workspace" ? t("requests.deskRequest") : t("requests.roomRequest")}</Row>
                 <Row label={t("requests.requestedTime")}>
-                  {formatBookingRange(f, r.requested_start, r.requested_end)}
-                  <span className="text-muted-foreground"> · {t("requests.hoursShort", { count: requestedHours })}</span>
+                  {range(r.requested_start, r.requested_end)}
+                  <span className="text-muted-foreground">
+                    {" "}· {isWs ? t(r.booking_unit === "month" ? "requests.monthsShort" : "requests.daysShort", { count: r.unit_count ?? 1 }) : t("requests.hoursShort", { count: requestedHours })}
+                  </span>
                 </Row>
+                {r.preferred ? <Row label={t("requests.preferredWorkspace")}>{r.preferred.name}</Row> : null}
                 <Row label={t("requests.people")}>{r.requested_participants}</Row>
                 {changed ? (
                   <Row label={t("requests.currentTime")}>
-                    {formatBookingRange(f, r.start_at, r.end_at)} · {t("requests.peopleCount", { count: r.participants })}
+                    {range(r.start_at, r.end_at)} · {t("requests.peopleCount", { count: r.participants })}
                   </Row>
                 ) : null}
                 {r.source_room ? <Row label={t("requests.fromRoom")}>{r.source_room.name}</Row> : null}
@@ -239,7 +278,8 @@ export default async function RequestDetailPage({ params }: { params: Promise<{ 
                 r={{
                   id: r.id,
                   status: r.status,
-                  hasSpace: !!resource,
+                  hasSpace: isWs ? r.assigned_desk_ids.length > 0 : !!resource,
+                  workspace: isWs,
                   reopen: true,
                   altDate: berlinDate(alt),
                   altStart: berlinTime(alt),
@@ -254,6 +294,21 @@ export default async function RequestDetailPage({ params }: { params: Promise<{ 
               <CardDescription>{t("requests.scheduleHint")}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-5">
+              {isWs ? (
+                <WorkspaceDetailsForm
+                  key={`${r.start_at}-${r.end_at}-${r.participants}-${r.booking_unit}`}
+                  r={{
+                    id: r.id,
+                    unit: r.booking_unit === "month" ? "month" : "day",
+                    date: berlinDate(r.start_at),
+                    count: r.unit_count ?? 1,
+                    participants: r.participants,
+                    priceAdjusted: r.price_adjusted,
+                    confirmed: !!r.booking_id && r.booking?.status !== "cancelled" && confirmed,
+                  }}
+                />
+              ) : (
+              <>
               <RequestDetailsForm
                 key={`${r.start_at}-${r.end_at}-${r.participants}-${resource}`}
                 r={{ id: r.id, resource, date: berlinDate(r.start_at), start: berlinTime(r.start_at), hours, participants: r.participants, priceAdjusted: r.price_adjusted }}
@@ -276,8 +331,36 @@ export default async function RequestDetailPage({ params }: { params: Promise<{ 
                   </ul>
                 )}
               </div>
+              </>
+              )}
             </CardContent>
           </Card>
+          {isWs ? (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">{t("requests.desksSection")}</CardTitle>
+                <CardDescription>{confirmed ? t("requests.desksMoveHint") : t("requests.desksHint")}</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {["rejected", "cancelled"].includes(r.status) ? (
+                  <p className="text-sm text-muted-foreground">{t("requests.desksClosed")}</p>
+                ) : (
+                  <DeskAssignment
+                    key={`${r.assigned_workspace_id}-${r.assigned_desk_ids.join(",")}-${r.start_at}-${r.end_at}-${r.participants}`}
+                    r={{
+                      id: r.id,
+                      participants: r.participants,
+                      workspaceId: r.assigned_workspace_id,
+                      deskIds: r.assigned_desk_ids,
+                      confirmed,
+                      preferredId: r.preferred_workspace_id,
+                    }}
+                    workspaces={deskOptions}
+                  />
+                )}
+              </CardContent>
+            </Card>
+          ) : null}
           <Card>
             <CardHeader>
               <CardTitle className="text-base">{t("requests.messageSection")}</CardTitle>
@@ -310,7 +393,11 @@ export default async function RequestDetailPage({ params }: { params: Promise<{ 
                             {ts(`request.${e.to_status}`)}
                           </span>
                         ) : null}
-                        {emailKind ? <span className="font-normal text-muted-foreground"> · {ts(`request.${EMAIL_STATUS[emailKind] ?? "pending"}`)}</span> : null}
+                        {emailKind ? (
+                          <span className="font-normal text-muted-foreground">
+                            {" "}· {emailKind === "desk_changed" ? t("requests.emailDeskChanged") : ts(`request.${EMAIL_STATUS[emailKind] ?? "pending"}`)}
+                          </span>
+                        ) : null}
                       </div>
                       {e.note && !emailKind ? <p className="mt-0.5 whitespace-pre-wrap break-words">{e.note}</p> : null}
                       <p className="mt-0.5 text-xs text-muted-foreground">

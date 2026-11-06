@@ -29,7 +29,7 @@ export default async function BookingDetailPage({ params }: { params: Promise<{ 
   const { data } = await supabase.from("bookings").select(BOOKING_SELECT).eq("id", id).maybeSingle();
   if (!data) notFound();
   const b = data as unknown as AdminBooking;
-  const [t, ts, f, resources, settings, notes, messages, emails, creator] = await Promise.all([
+  const [t, ts, f, resources, settings, notes, messages, emails, creator, desks] = await Promise.all([
     getTranslations({ locale, namespace: "admin" }),
     getTranslations({ locale, namespace: "status" }),
     getFormatter({ locale }),
@@ -39,7 +39,16 @@ export default async function BookingDetailPage({ params }: { params: Promise<{ 
     supabase.from("booking_messages").select("*").eq("booking_id", id).order("created_at", { ascending: true }),
     supabase.from("email_logs").select("id, email_type, subject, recipient, status, created_at").eq("related_booking_id", id).order("created_at", { ascending: false }),
     b.created_by ? supabase.from("profiles").select("full_name, email").eq("id", b.created_by).maybeSingle() : Promise.resolve({ data: null }),
+    b.booking_type === "workspace"
+      ? supabase.from("booking_desks").select("desk:workspace_desks(label, position)").eq("booking_id", id)
+      : Promise.resolve({ data: [] }),
   ]);
+  const deskLabels = ((desks.data ?? []) as unknown as { desk: { label: string; position: number } | null }[])
+    .map((d) => d.desk)
+    .filter((d): d is { label: string; position: number } => !!d)
+    .sort((x, y) => x.position - y.position)
+    .map((d) => d.label);
+  const requestId = (b as unknown as { booking_request_id?: string | null }).booking_request_id ?? null;
   const c = customerOf(b);
   const base = `/${locale}/admin`;
   const active = ["pending", "confirmed"].includes(b.status);
@@ -64,6 +73,14 @@ export default async function BookingDetailPage({ params }: { params: Promise<{ 
                 <Row label={t("common.status")}><StatusBadge kind="booking" value={b.status} /></Row>
                 <Row label={t("common.resource")}>{resourceName(b)} ({ts(`bookingType.${b.booking_type}`)})</Row>
                 <Row label={t("bookings.when")}>{formatBookingRange(f, b.start_at, b.end_at)}</Row>
+                {b.booking_type === "workspace" ? (
+                  <Row label={t("requests.desksRow")}>
+                    {deskLabels.length ? t("requests.desksList", { count: deskLabels.length, desks: deskLabels.join(", ") }) : "—"}
+                    {requestId ? (
+                      <Link href={`${base}/requests/${requestId}`} className="ml-2 text-primary hover:underline">{t("requests.changeDesks")} →</Link>
+                    ) : null}
+                  </Row>
+                ) : null}
                 <Row label={t("bookings.attendees")}>{b.attendees}</Row>
                 <Row label={t("bookings.purpose")}>{b.purpose || "—"}</Row>
                 <Row label={t("bookings.source")}>{ts(`source.${b.source}`)}</Row>

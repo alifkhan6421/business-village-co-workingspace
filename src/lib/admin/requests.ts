@@ -5,26 +5,47 @@ import { adminAction, type AdminContext } from "./common";
 import { dbErrorKey, fail, zodFieldErrors, type ActionResult } from "@/lib/action-result";
 import { checkbox, reqString } from "@/lib/validation";
 import { berlinToUtc } from "@/lib/time";
-import { centsToDecimal, quotePackage, quoteRequest, splitVat, toCents, type Quote } from "@/lib/pricing/calc";
-import { loadPricingConfig } from "@/lib/pricing/server";
+import { centsToDecimal, quotePackage, quoteRequest, quoteWorkspace, splitVat, toCents, WORKSPACE_MAX_UNITS, type Quote, type WorkspaceUnit } from "@/lib/pricing/calc";
+import { loadPricingConfig, loadWorkspacePrices } from "@/lib/pricing/server";
 import { sendRequestEmail } from "@/lib/email/request-emails";
 
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
 const TIME = /^([01]\d|2[0-3]):[0-5]\d$/;
 
-type RequestRow = { id: string; space_type: string; package_id: string | null; price_adjusted: boolean; price_snapshot: unknown; price_gross: number | null; price_net: number | null; price_vat: number | null };
+type RequestRow = {
+  id: string;
+  space_type: string;
+  package_id: string | null;
+  price_adjusted: boolean;
+  price_snapshot: unknown;
+  price_gross: number | null;
+  price_net: number | null;
+  price_vat: number | null;
+  booking_unit: string;
+  unit_count: number | null;
+  assigned_workspace_id: string | null;
+  preferred_workspace_id: string | null;
+};
 
 async function loadRequest(ctx: AdminContext, id: string) {
   const { data } = await ctx.supabase
     .from("booking_requests")
-    .select("id, space_type, package_id, price_adjusted, price_snapshot, price_gross, price_net, price_vat, assigned_room_id, assigned_workspace_id, start_at, end_at, participants")
+    .select("id, status, space_type, package_id, price_adjusted, price_snapshot, price_gross, price_net, price_vat, assigned_room_id, assigned_workspace_id, preferred_workspace_id, assigned_desk_ids, booking_unit, unit_count, start_at, end_at, participants")
     .eq("id", id)
     .maybeSingle();
   return data;
 }
 
 /** Server-side price for the given schedule: the request's own package if it still fits, else the best active one. */
-async function priceFor(r: RequestRow, hours: number, participants: number): Promise<Quote | null> {
+async function priceFor(r: RequestRow, hours: number, participants: number, ws?: { unit: WorkspaceUnit; count: number; workspaceId?: string | null }): Promise<Quote | null> {
+  if (r.space_type === "workspace" && r.booking_unit !== "hour") {
+    const unit = ws?.unit ?? (r.booking_unit as WorkspaceUnit);
+    const count = ws?.count ?? r.unit_count ?? 1;
+    const target = ws?.workspaceId !== undefined ? ws.workspaceId : (r.assigned_workspace_id ?? r.preferred_workspace_id);
+    // An assigned workspace sets the price; otherwise the range over the public workspaces.
+    const [config, workspaces] = await Promise.all([loadPricingConfig(), loadWorkspacePrices({ includeHidden: !!target })]);
+    return quoteWorkspace(workspaces, unit, count, participants, config.settings, target);
+  }
   if (r.space_type !== "room") return null;
   const config = await loadPricingConfig({ includeInactive: true });
   const own = r.package_id ? config.packages.find((p) => p.id === r.package_id) : undefined;
@@ -275,7 +296,7 @@ export async function requestCalendarEvents(from: string, to: string, statuses: 
     if (isNaN(+f) || isNaN(+t) || +t - +f > 100 * 86400000) return fail("validation");
     let q = ctx.supabase
       .from("booking_requests")
-      .select("id, reference, full_name, company, start_at, end_at, status, participants, room:rooms!booking_requests_assigned_room_id_fkey(name), workspace:workspaces(name)")
+      .select("id, reference, full_name, company, start_at, end_at, status, participants, room:rooms!booking_requests_assigned_room_id_fkey(name), workspace:workspaces!booking_requests_assigned_workspace_id_fkey(name)")
       .lt("start_at", t.toISOString())
       .gt("end_at", f.toISOString())
       .limit(2000);
@@ -297,5 +318,113 @@ export async function requestCalendarEvents(from: string, to: string, statuses: 
         resourceName: r.room?.name ?? r.workspace?.name ?? null,
       })),
     };
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Shared workspaces: per day / per month schedule and desk assignment
+// ---------------------------------------------------------------------------
+
+const workspaceDetailsSchema = z.object({
+  id: z.uuid(),
+  unit: z.enum(["day", "month"], { message: "invalidValue" }),
+  date: z.string().regex(DATE, "invalidDate"),
+  count: z.coerce.number({ message: "invalidNumber" }).int("invalidNumber").min(1, "invalidNumber").max(WORKSPACE_MAX_UNITS.day, "invalidNumber"),
+  participants: z.coerce.number({ message: "invalidNumber" }).int("invalidNumber").min(1, "invalidNumber").max(500, "invalidNumber"),
+  recalculate: checkbox,
+  note: z.string().max(2000).optional(),
+});
+
+/** Start date, number of days or months and group size of a workspace request. */
+export async function saveWorkspaceRequestDetails(_: unknown, fd: FormData): Promise<ActionResult> {
+  return adminAction(async (ctx) => {
+    const parsed = workspaceDetailsSchema.safeParse(Object.fromEntries(fd));
+    if (!parsed.success) return fail("validation", zodFieldErrors(parsed.error));
+    const v = parsed.data;
+    if (v.count > WORKSPACE_MAX_UNITS[v.unit]) return fail("validation", { count: "invalidNumber" });
+    const r = await loadRequest(ctx, v.id);
+    if (!r) return fail("notFound");
+    const keepPrice = !v.recalculate;
+    const quote = keepPrice ? null : await priceFor(r as RequestRow, 0, v.participants, { unit: v.unit, count: v.count });
+    const { error } = await ctx.supabase.rpc("admin_update_workspace_request", {
+      p_request_id: v.id,
+      p_unit: v.unit,
+      p_start_date: v.date,
+      p_count: v.count,
+      p_participants: v.participants,
+      ...(keepPrice
+        ? { p_price_snapshot: null as never, p_price_net: r.price_net as number, p_price_vat: r.price_vat as number, p_price_gross: r.price_gross as number }
+        : priceParams(quote)),
+      p_price_adjusted: keepPrice ? r.price_adjusted : false,
+      p_event_type: keepPrice ? "updated" : "price_recalculated",
+      p_note: v.note ?? "",
+    });
+    if (error) return fail(dbErrorKey(error, "request"));
+    return done();
+  });
+}
+
+const desksSchema = z.object({
+  id: z.uuid(),
+  workspace_id: z.uuid({ message: "required" }),
+  desk_ids: z.array(z.uuid()).min(1, "required").max(500),
+  notify: z.boolean(),
+  note: z.string().trim().max(2000).optional(),
+});
+
+/**
+ * Assigns a workspace and one desk per person. For a confirmed booking this
+ * moves the reservation to the new desks and (optionally) emails the customer.
+ * Before confirmation the price follows the assigned workspace (unless set by hand).
+ */
+export async function assignWorkspaceDesks(_: unknown, fd: FormData): Promise<ActionResult<{ moved: boolean; emailed: boolean }>> {
+  return adminAction(async (ctx) => {
+    const parsed = desksSchema.safeParse({
+      id: fd.get("id"),
+      workspace_id: fd.get("workspace_id"),
+      desk_ids: fd.getAll("desk_ids"),
+      notify: fd.get("notify") === "on",
+      note: fd.get("note") ?? undefined,
+    });
+    if (!parsed.success) return fail("validation", zodFieldErrors(parsed.error));
+    const v = parsed.data;
+    const r = await loadRequest(ctx, v.id);
+    if (!r) return fail("notFound");
+    const { data: moved, error } = await ctx.supabase.rpc("admin_assign_workspace_desks", {
+      p_request_id: v.id,
+      p_workspace_id: v.workspace_id,
+      p_desk_ids: v.desk_ids,
+      p_note: v.note ?? "",
+    });
+    if (error) return fail(dbErrorKey(error, "request"));
+
+    const confirmed = ["confirmed", "completed"].includes(String((r as { status?: string }).status));
+    if (!confirmed && !r.price_adjusted && r.assigned_workspace_id !== v.workspace_id) {
+      const quote = await priceFor(r as RequestRow, 0, r.participants, { unit: r.booking_unit as WorkspaceUnit, count: r.unit_count ?? 1, workspaceId: v.workspace_id });
+      if (quote) {
+        await ctx.supabase.rpc("admin_update_booking_request", {
+          p_request_id: v.id,
+          p_resource_type: "workspace",
+          p_resource_id: v.workspace_id,
+          p_start: r.start_at,
+          p_end: r.end_at,
+          p_participants: r.participants,
+          ...priceParams(quote),
+          p_price_adjusted: false,
+          p_adjustment_reason: "",
+          p_event_type: "price_recalculated",
+          p_note: "",
+        });
+      }
+    }
+
+    let emailed = false;
+    if (moved && v.notify) {
+      const res = await sendRequestEmail(v.id, "desk_changed");
+      emailed = !!res?.ok;
+      if (emailed) await ctx.supabase.rpc("admin_add_booking_request_event", { p_request_id: v.id, p_event_type: "message_sent", p_note: "email:desk_changed" });
+    }
+    revalidatePath("/", "layout");
+    return { ok: true, data: { moved: !!moved, emailed } };
   });
 }
