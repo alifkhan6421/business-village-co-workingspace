@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { BookingRequestForm } from "@/components/booking-request/request-form";
-import { loadPricingConfig } from "@/lib/pricing/server";
+import { loadPricingConfig, loadWorkspacePrices } from "@/lib/pricing/server";
 import { getSiteSettings } from "@/lib/cms";
 import { getCurrentUser } from "@/lib/auth";
 import { getResourceBySlug } from "@/lib/resources";
@@ -25,9 +25,10 @@ export default async function BookingRequestPage({ params, searchParams }: Props
   setRequestLocale(locale);
   const sp = await searchParams;
   const q = (k: string) => (typeof sp[k] === "string" ? (sp[k] as string) : undefined);
-  const [t, config, settings, current] = await Promise.all([
+  const [t, config, workspaces, settings, current] = await Promise.all([
     getTranslations({ locale, namespace: "request" }),
     loadPricingConfig(),
+    loadWorkspacePrices(),
     getSiteSettings(locale),
     getCurrentUser(),
   ]);
@@ -61,7 +62,12 @@ export default async function BookingRequestPage({ params, searchParams }: Props
             people: num(q("people")),
             packageId: q("package"),
             category: q("category") === "stairs" || q("category") === "venue" ? q("category") as "stairs" | "venue" : undefined,
+            space: q("space") === "workspace" || q("space") === "desk" ? "workspace" : undefined,
+            unit: q("unit") === "month" ? "month" : q("unit") === "day" ? "day" : undefined,
+            count: num(q("count")),
+            workspace: q("workspace") && /^[0-9a-f-]{36}$/.test(q("workspace")!) ? q("workspace") : undefined,
           }}
+          workspaces={workspaces}
           room={room ? { slug: room.slug, name: room.name, capacity: room.capacity } : null}
           user={current ? { name: current.profile.full_name ?? "", email: current.profile.email, phone: current.profile.phone ?? "", company: current.profile.company ?? "" } : null}
         />

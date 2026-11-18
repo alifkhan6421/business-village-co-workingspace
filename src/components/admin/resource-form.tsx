@@ -32,6 +32,7 @@ export type ResourceFormValues = {
   full_description_en: string;
   price_hourly?: number | string | null;
   price_daily?: number | string | null;
+  price_monthly?: number | string | null;
 };
 
 function slugify(v: string) {
@@ -110,11 +111,6 @@ export function ResourceForm({
           <Field label={tc("slug")} htmlFor="slug" error={fe("slug")} hint={tc("slugHint")}>
             <Input id="slug" name="slug" defaultValue={v?.slug} required maxLength={80} pattern="[a-z0-9-]+" />
           </Field>
-          {kind === "workspace" ? (
-            <Field label={t("deskNumber")} htmlFor="desk_number" error={fe("desk_number")}>
-              <Input id="desk_number" name="desk_number" defaultValue={v?.desk_number ?? ""} maxLength={20} />
-            </Field>
-          ) : null}
           <Field label={t("floor")} htmlFor="floor" error={fe("floor")}>
             <Input id="floor" name="floor" defaultValue={v?.floor} maxLength={40} />
           </Field>
@@ -123,8 +119,13 @@ export function ResourceForm({
               <Input id="zone" name="zone" defaultValue={v?.zone ?? ""} maxLength={40} />
             </Field>
           ) : null}
-          <Field label={t("capacity")} htmlFor="capacity" error={fe("capacity")}>
-            <Input id="capacity" name="capacity" type="number" min={1} max={500} defaultValue={v?.capacity ?? (kind === "room" ? 6 : 1)} required />
+          <Field
+            label={kind === "workspace" ? t("seats") : t("capacity")}
+            htmlFor="capacity"
+            error={fe("capacity")}
+            hint={kind === "workspace" ? t("seatsHint") : undefined}
+          >
+            <Input id="capacity" name="capacity" type="number" min={1} max={kind === "workspace" ? 50 : 500} defaultValue={v?.capacity ?? (kind === "room" ? 6 : 4)} required />
           </Field>
           <Field label={tCommon("status")} htmlFor="status" error={fe("status")} hint={t("statusHint")}>
             <NativeSelect id="status" name="status" defaultValue={v?.status ?? "available"}>
@@ -155,6 +156,22 @@ export function ResourceForm({
         <CardHeader>
           <CardTitle className="text-base">{t("pricing")}</CardTitle>
         </CardHeader>
+        {kind === "workspace" ? (
+        <CardContent className="grid gap-4 sm:grid-cols-2">
+          <Field label={t("pricePersonDay")} htmlFor="price_daily" error={fe("price_daily")} hint={t("priceHint")}>
+            <div className="relative">
+              <Input id="price_daily" name="price_daily" type="number" inputMode="decimal" min={0} step="0.01" defaultValue={v?.price_daily ?? ""} className="pr-9" />
+              <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">€</span>
+            </div>
+          </Field>
+          <Field label={t("pricePersonMonth")} htmlFor="price_monthly" error={fe("price_monthly")} hint={t("priceMonthHint")}>
+            <div className="relative">
+              <Input id="price_monthly" name="price_monthly" type="number" inputMode="decimal" min={0} step="0.01" defaultValue={v?.price_monthly ?? ""} className="pr-9" />
+              <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">€</span>
+            </div>
+          </Field>
+        </CardContent>
+        ) : (
         <CardContent className="grid gap-4 sm:grid-cols-2">
           <Field label={t("priceHourly")} htmlFor="price_hourly" error={fe("price_hourly")} hint={t("priceHint")}>
             <div className="relative">
@@ -169,6 +186,7 @@ export function ResourceForm({
             </div>
           </Field>
         </CardContent>
+        )}
       </Card>
 
       <Card>

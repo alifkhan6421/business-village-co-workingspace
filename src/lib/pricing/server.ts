@@ -3,7 +3,7 @@ import { createClient } from "@supabase/supabase-js";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { Database } from "@/lib/supabase/database.types";
 import type { Tables } from "@/lib/supabase/database.types";
-import { toCents, type PricingConfig, type PricingPackage, type PricingSettings } from "./calc";
+import { toCents, type PricingConfig, type PricingPackage, type PricingSettings, type WorkspacePrice } from "./calc";
 
 type PackageRow = Tables<"pricing_packages"> & { pricing_hourly_tiers: Tables<"pricing_hourly_tiers">[] };
 
@@ -68,4 +68,26 @@ export async function loadPricingConfig({ includeInactive = false } = {}): Promi
   const mapped = ((packages ?? []) as PackageRow[]).map(mapPackage);
   if (!includeInactive) for (const p of mapped) p.tiers = p.tiers.filter((t) => t.active);
   return { settings: mapSettings(settings), packages: mapped };
+}
+
+/**
+ * Bookable shared workspaces with their per-person prices (public data).
+ * `includeHidden` (service role) also returns hidden or disabled ones, for admin recalculations.
+ */
+export async function loadWorkspacePrices({ includeHidden = false } = {}): Promise<WorkspacePrice[]> {
+  const db = includeHidden
+    ? createAdminClient()
+    : createClient<Database>(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, {
+        auth: { persistSession: false, autoRefreshToken: false },
+      });
+  let q = db.from("workspaces").select("id, name, capacity, price_daily, price_monthly, status, public_visible").order("display_order").order("name");
+  if (!includeHidden) q = q.eq("public_visible", true).eq("status", "available");
+  const { data } = await q;
+  return (data ?? []).map((w) => ({
+    id: w.id,
+    name: w.name,
+    capacity: w.capacity,
+    dayCents: toCents(w.price_daily),
+    monthCents: toCents(w.price_monthly),
+  }));
 }

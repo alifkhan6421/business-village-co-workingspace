@@ -158,7 +158,9 @@
       "invalid_customer": "Please select a member or enter guest details.",
       "not_found": "The booking could not be found.",
       "invalid_status": "Invalid status.",
-      "direct_booking_disabled": "Direct online booking is no longer available. Please send a booking request."
+      "direct_booking_disabled": "Direct online booking is no longer available. Please send a booking request.",
+      "requests_only": "Workspaces are booked through booking requests.",
+      "desks_mismatch": "Change the workspace of this booking in its request (assign desks)."
     },
     "emailFailed": "The email could not be sent. See the email log for details.",
     "request": {
@@ -183,14 +185,21 @@
       "invalid_customer": "Please select a member or enter guest details.",
       "not_found": "The booking could not be found.",
       "invalid_status": "Invalid status.",
-      "invalid_duration": "Invalid duration.",
-      "invalid_participants": "Invalid number of people.",
+      "invalid_duration": "Please choose a valid period.",
+      "invalid_participants": "Please enter a valid number of people.",
       "invalid_value": "Invalid input.",
       "room_required": "Please assign a room or desk first.",
       "reason_required": "Please give a reason.",
       "invalid_transition": "This status change is not possible.",
-      "alternative_required": "Please enter an alternative time."
-    }
+      "alternative_required": "Please enter an alternative time.",
+      "desks_required": "Please assign a desk to every person first.",
+      "desk_count_mismatch": "Please choose exactly one desk per person.",
+      "desk_unavailable": "At least one of the chosen desks is already taken in this period.",
+      "invalid_desks": "The chosen desks don't belong to this workspace.",
+      "requests_only": "Workspaces are booked through booking requests.",
+      "desks_mismatch": "Change the workspace of this booking with “assign desks”."
+    },
+    "desks_in_use": "Some of the desks that would be removed are still booked. Move those bookings first or wait until they have ended."
   },
   "status": {
     "booking": {
@@ -308,7 +317,16 @@
     "proposedTime": "Proposed time",
     "additionalRequests": "Additional requests",
     "customerLanguage": "Language",
-    "openRequestInAdmin": "Open request in admin"
+    "openRequestInAdmin": "Open request in admin",
+    "desks": "{count, plural, one {desk {desks}} other {desks {desks}}}",
+    "period": "Period",
+    "bookedFor": "Booked for",
+    "days": "{count, plural, one {# day} other {# days}}",
+    "months": "{count, plural, one {# month} other {# months}}",
+    "space": "Type",
+    "workspaceDesk": "Workspace (own desk)",
+    "preferredWorkspace": "Preferred workspace",
+    "newDesk": "New desk"
   },
   "auth": {
     "loginTitle": "Log in",
@@ -445,7 +463,12 @@
     "requestBooking": "Request a booking",
     "requestTitle": "Request this space",
     "requestText": "Send us your date, time and group size. You get a price estimate right away, and our team confirms your booking personally.",
-    "memberBookingTitle": "Book directly (members)"
+    "memberBookingTitle": "Book directly (members)",
+    "perPersonDay": "per person/day",
+    "perPersonMonth": "per person/month",
+    "seatsCount": "{count, plural, one {# desk} other {# desks}}",
+    "monthly": "Monthly",
+    "workspaceHow": "Every person gets their own desk in this workspace, per day or per month. Send us a request with “Request a booking” at the top and we assign your desk with the confirmation."
   },
   "booking": {
     "panelTitle": "Booking",
@@ -838,7 +861,21 @@
       "disable": "Disable",
       "enabled": "Bookable again.",
       "disabledToast": "Disabled. No longer bookable.",
-      "deleteHint": "Only possible when there are no bookings. Otherwise disable it."
+      "deleteHint": "Only possible when there are no bookings. Otherwise disable it.",
+      "seats": "Desks (seats)",
+      "seatsHint": "One fixed desk per seat. You can only reduce it when the desks that would go are not booked.",
+      "pricePersonDay": "Price per person per day",
+      "pricePersonMonth": "Price per person per month",
+      "priceMonthHint": "One month from the booking's start date.",
+      "seatsCount": "{count, plural, one {# desk} other {# desks}}",
+      "deskName": "Name of desk {position}",
+      "deskRenamed": "Desk renamed.",
+      "desksTitle": "Desks and occupancy",
+      "desksSubtitle": "Each seat is a fixed desk. You can rename the desks here. Green: taken in the next 14 days.",
+      "noDesks": "No desks yet.",
+      "desk": "Desk",
+      "deskFree": "Free",
+      "deskTaken": "Taken"
     },
     "blocks": {
       "title": "Blocked periods",
@@ -1018,7 +1055,8 @@
         "request_alternative": "Alternative time",
         "request_rejected": "Request rejected",
         "request_cancelled": "Request cancelled",
-        "request_message": "Request message"
+        "request_message": "Request message",
+        "request_desk_changed": "Desk change"
       }
     },
     "activity": {
@@ -1450,7 +1488,8 @@
         "price_recalculated": "Price recalculated",
         "price_adjusted": "Price adjusted manually",
         "note": "Internal note",
-        "message_sent": "Email sent to customer"
+        "message_sent": "Email sent to customer",
+        "desks_changed": "Desks assigned"
       },
       "emails": "Emails",
       "noEmails": "No emails yet.",
@@ -1505,7 +1544,36 @@
       "noteAdded": "Note saved",
       "messagePlaceholder": "Your message to the customer …",
       "sendMessage": "Send message",
-      "messageSent": "Message sent"
+      "messageSent": "Message sent",
+      "assignDesksFirst": "Please assign a workspace and one desk per person first.",
+      "startDate": "Start date",
+      "peopleLockedHint": "A confirmed booking keeps its number of people (one desk each).",
+      "peopleDesksHint": "Changing the number of people clears the desk selection.",
+      "workspace": "Workspace",
+      "chooseWorkspace": "Choose a workspace …",
+      "desksFree": "{free} of {total} desks free",
+      "chooseDesks": "{count, plural, one {Choose one desk} other {Choose # desks}}",
+      "deskLabel": "Desk {label}",
+      "deskCurrent": "Currently assigned",
+      "deskFree": "Free",
+      "desksSelected": "{selected} of {count} chosen",
+      "notifyMove": "Email the customer about the new desk",
+      "moveBooking": "Move booking",
+      "assignDesks": "Assign desks",
+      "movedEmailed": "Booking moved; the customer has been emailed.",
+      "moved": "Booking moved.",
+      "desksAssigned": "Desks assigned.",
+      "desksList": "{count, plural, one {desk {desks}} other {desks {desks}}}",
+      "daysShort": "{count, plural, one {# day} other {# days}}",
+      "monthsShort": "{count, plural, one {# month} other {# months}}",
+      "preferredWorkspace": "Preference",
+      "desksSection": "Workspace and desks",
+      "desksHint": "Choose a workspace with enough free desks and one desk per person. Then you can confirm.",
+      "desksMoveHint": "The booking is confirmed. Choose other desks to move it; the customer gets an email.",
+      "desksClosed": "This request is closed. Reopen it to assign desks.",
+      "emailDeskChanged": "Desk change",
+      "desksRow": "Desks",
+      "changeDesks": "Change desks"
     }
   },
   "pricing": {
@@ -1571,7 +1639,8 @@
     "categories": {
       "meeting": "A meeting room",
       "stairs": "The event stairs",
-      "venue": "The entire venue"
+      "venue": "The entire venue",
+      "workspace": "Workspace"
     },
     "hoursShort": "{count} h",
     "fewerPeople": "One person fewer",
@@ -1579,7 +1648,31 @@
     "categoryHints": {
       "meeting": "Up to 10 people or a whole room",
       "stairs": "€10–15 per person",
-      "venue": "Stairs & all rooms"
+      "venue": "Stairs & all rooms",
+      "workspace": "Your own desk, per day or month"
+    },
+    "lineWorkspace": "{participants} × {units} at {price}",
+    "workspace": {
+      "unitLegend": "Billing",
+      "unit": {
+        "day": "Per day",
+        "month": "Per month"
+      },
+      "count": {
+        "day": "{count, plural, one {# day} other {# days}}",
+        "month": "{count, plural, one {# month} other {# months}}"
+      },
+      "howLong": "How long?",
+      "rangeNote": "The price depends on the workspace we assign. Choose a preferred workspace to see the exact price.",
+      "tooMany": "Our workspaces have up to {count} desks. For larger groups, please request a meeting room.",
+      "noPrice": "No price has been set for this selection yet. Send us a request anyway and we will make you an offer.",
+      "title": "Workspaces",
+      "subtitle": "Your own desk in a shared workspace. Prices per person.",
+      "name": "Workspace",
+      "seats": "Desks",
+      "perDay": "Per person / day",
+      "perMonth": "Per person / month",
+      "tableNote": "A month runs from your start date to the day before the same date next month. Days count opening days only."
     }
   },
   "request": {
@@ -1625,6 +1718,20 @@
     },
     "quickTitle": "Request a room",
     "quickSubtitle": "Choose a date, duration and group size. We'll get back to you with a confirmation.",
-    "quickButton": "Start request"
+    "quickButton": "Start request",
+    "workspaceHint": "You get your own desk in a shared workspace. We assign the desk with the confirmation.",
+    "startDate": "Start date",
+    "days": "Number of days",
+    "months": "Number of months",
+    "daysHint": "Only opening days count.",
+    "monthsHint": "From the start date, e.g. 15 Nov to 14 Dec.",
+    "seatsHint": "One desk per person, up to {count} in one workspace.",
+    "preferredWorkspace": "Preferred workspace (optional)",
+    "preferredHint": "We take your preference into account when enough desks are free there.",
+    "noPreference": "No preference",
+    "seats": "{count, plural, one {# desk} other {# desks}}",
+    "daysCount": "{count, plural, one {# day} other {# days}}",
+    "monthsCount": "{count, plural, one {# month} other {# months}}",
+    "until": "until {date}"
   }
 }

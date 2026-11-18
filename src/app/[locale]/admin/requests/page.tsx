@@ -10,7 +10,7 @@ import { Table, TBody, TD, TH, THead, TR } from "@/components/ui/table";
 import { EmptyState } from "@/components/ui/states";
 import { buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { formatBookingRange } from "@/lib/format-range";
+import { formatBookingRange, formatDayPeriod } from "@/lib/format-range";
 import { berlinToUtc } from "@/lib/time";
 import { loadCalendarSettings } from "@/lib/admin/queries";
 import { formatCents, toCents } from "@/lib/pricing/calc";
@@ -68,7 +68,7 @@ export default async function RequestsPage({ params, searchParams }: { params: P
   let query = supabase
     .from("booking_requests")
     .select(
-      "id, reference, status, space_type, full_name, email, company, start_at, end_at, participants, estimate_gross, price_gross, created_at, room:rooms!booking_requests_assigned_room_id_fkey(name), workspace:workspaces(name)",
+      "id, reference, status, space_type, booking_unit, unit_count, full_name, email, company, start_at, end_at, participants, estimate_gross, price_gross, created_at, room:rooms!booking_requests_assigned_room_id_fkey(name), workspace:workspaces!booking_requests_assigned_workspace_id_fkey(name)",
       { count: "exact" },
     );
   if (sp.status === "open") query = query.in("status", ["pending", "under_review", "alternative_proposed"]);
@@ -93,6 +93,8 @@ export default async function RequestsPage({ params, searchParams }: { params: P
     reference: string;
     status: string;
     space_type: string;
+    booking_unit: string;
+    unit_count: number | null;
     full_name: string;
     email: string;
     company: string | null;
@@ -177,7 +179,7 @@ export default async function RequestsPage({ params, searchParams }: { params: P
                     </div>
                     <StatusBadge kind="request" value={r.status} />
                   </div>
-                  <div className="mt-3 text-sm">{formatBookingRange(f, r.start_at, r.end_at)}</div>
+                  <div className="mt-3 text-sm">{r.booking_unit !== "hour" ? formatDayPeriod(f, r.start_at, r.end_at) : formatBookingRange(f, r.start_at, r.end_at)}</div>
                   <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                     <span className="font-mono font-semibold text-primary">{r.reference}</span>
                     <span aria-hidden="true">·</span>
@@ -223,8 +225,13 @@ export default async function RequestsPage({ params, searchParams }: { params: P
                     </div>
                   </TD>
                   <TD className="whitespace-nowrap text-sm">
-                    {formatBookingRange(f, r.start_at, r.end_at)}
-                    {r.space_type === "workspace" ? <div className="text-xs text-muted-foreground">{t("requests.deskRequest")}</div> : null}
+                    {r.booking_unit !== "hour" ? formatDayPeriod(f, r.start_at, r.end_at) : formatBookingRange(f, r.start_at, r.end_at)}
+                    {r.space_type === "workspace" ? (
+                      <div className="text-xs text-muted-foreground">
+                        {t("requests.deskRequest")}
+                        {r.booking_unit !== "hour" ? ` · ${t(r.booking_unit === "month" ? "requests.monthsShort" : "requests.daysShort", { count: r.unit_count ?? 1 })}` : ""}
+                      </div>
+                    ) : null}
                   </TD>
                   <TD className="text-sm tabular-nums">{r.participants}</TD>
                   <TD className="text-sm">{space(r) ?? <span className="text-muted-foreground">{t("requests.unassigned")}</span>}</TD>

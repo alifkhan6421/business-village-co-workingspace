@@ -30,6 +30,8 @@ export type ResourceView = {
   /** EUR; null when no price is set (shown as "on request") */
   priceHourly: number | null;
   priceDaily: number | null;
+  /** Workspaces: price per person per month (priceDaily is then per person per day). */
+  priceMonthly: number | null;
   status: string;
   featured: boolean;
   publicVisible: boolean;
@@ -90,6 +92,7 @@ function mapResource(row: Record<string, unknown>, type: ResourceType, locale: L
     capacity: row.capacity as number,
     priceHourly: toPrice(row.price_hourly),
     priceDaily: toPrice(row.price_daily),
+    priceMonthly: toPrice(row.price_monthly),
     status: row.status as string,
     featured: row.featured as boolean,
     publicVisible: row.public_visible as boolean,

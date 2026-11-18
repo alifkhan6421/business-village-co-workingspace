@@ -17,7 +17,7 @@ import type { ActionResult } from "@/lib/action-result";
 
 export type SpaceOption = { value: string; label: string; group: "room" | "workspace"; state: "free" | "busy" | "blocked" | "small" | "unavailable" };
 
-function useAction(action: (prev: unknown, fd: FormData) => Promise<ActionResult>, success: string, after?: () => void) {
+export function useAction(action: (prev: unknown, fd: FormData) => Promise<ActionResult>, success: string, after?: () => void) {
   const router = useRouter();
   const errorText = useErrorText();
   const fieldError = useFieldErrorText();
@@ -125,14 +125,15 @@ const EMAILS = ["confirmed", "alternative_proposed", "rejected", "cancelled"];
 export function RequestStatusActions({
   r,
 }: {
-  r: { id: string; status: string; hasSpace: boolean; reopen: boolean; altDate: string; altStart: string; altHours: number };
+  r: { id: string; status: string; hasSpace: boolean; reopen: boolean; altDate: string; altStart: string; altHours: number; workspace?: boolean };
 }) {
   const t = useTranslations("admin.requests");
   const ts = useTranslations("status.request");
   const tc = useTranslations("common");
   const [open, setOpen] = useState<string | null>(null);
   const { onSubmit, pending, fe, alert, setState } = useAction(setRequestStatus, t("statusChanged"), () => setOpen(null));
-  const options = TRANSITIONS[r.status] ?? [];
+  // A workspace request gets a different start date by editing it; no alternative-time proposal.
+  const options = (TRANSITIONS[r.status] ?? []).filter((s) => !(r.workspace && s === "alternative_proposed"));
   if (!options.length) return <p className="text-sm text-muted-foreground">{t("noActions")}</p>;
   const target = open;
   return (
@@ -166,7 +167,7 @@ export function RequestStatusActions({
               <input type="hidden" name="id" value={r.id} />
               <input type="hidden" name="status" value={target} />
               {alert}
-              {target === "confirmed" && !r.hasSpace ? <FormAlert>{t("assignFirst")}</FormAlert> : null}
+              {target === "confirmed" && !r.hasSpace ? <FormAlert>{r.workspace ? t("assignDesksFirst") : t("assignFirst")}</FormAlert> : null}
               {target === "alternative_proposed" ? (
                 <div className="grid grid-cols-2 gap-3">
                   <Field label={tc("date")} htmlFor="alt-date" className="col-span-2" error={fe("alt_date")}>

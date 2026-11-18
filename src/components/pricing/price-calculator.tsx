@@ -5,20 +5,32 @@ import { Minus, Plus, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { localizeHref } from "@/lib/href";
 import { cn } from "@/lib/utils";
-import { applicablePackages, hourBounds, type PricingCategory, type PricingConfig } from "@/lib/pricing/calc";
+import { applicablePackages, hourBounds, type PricingCategory, type PricingConfig, type WorkspacePrice, type WorkspaceUnit } from "@/lib/pricing/calc";
 import type { Locale } from "@/i18n/routing";
-import { activeCategories, CategoryPicker } from "./category-picker";
+import { activeCategories, CategoryPicker, type BookCategory } from "./category-picker";
 import { EstimatePanel } from "./estimate-panel";
+import { WorkspaceCountSelect, WorkspaceEstimate, WorkspaceUnitPicker } from "./workspace-estimate";
 
 /**
  * Public price calculator, laid out like the Business Village "Raumpreis-Kalkulator":
  * choose what to book, then the number of people and the duration; the price
  * appears at once. No account needed. Leads to the central booking request form.
  */
-export function PriceCalculator({ config, maxParticipants = 500 }: { config: PricingConfig; maxParticipants?: number }) {
+export function PriceCalculator({
+  config,
+  workspaces = [],
+  maxParticipants = 500,
+}: {
+  config: PricingConfig;
+  workspaces?: WorkspacePrice[];
+  maxParticipants?: number;
+}) {
   const t = useTranslations("pricing");
   const locale = useLocale() as Locale;
-  const [category, setCategory] = useState<PricingCategory>(activeCategories(config)[0] ?? "meeting");
+  const [category, setCategory] = useState<BookCategory>(activeCategories(config)[0] ?? "meeting");
+  const [unit, setUnit] = useState<WorkspaceUnit>("day");
+  const [units, setUnits] = useState(1);
+  const isWorkspace = category === "workspace";
   const inCategory = { ...config, packages: config.packages.filter((p) => p.category === category) };
   const bounds = hourBounds(inCategory);
   const [hours, setHours] = useState(4);
@@ -27,12 +39,14 @@ export function PriceCalculator({ config, maxParticipants = 500 }: { config: Pri
   const participants = Number(people);
   const validPeople = Number.isInteger(participants) && participants >= 1 && participants <= maxParticipants;
   // Flat-rate categories (stairs, entire venue) don't depend on the duration.
-  const usesHours = inCategory.packages.some((p) => p.active && p.mode === "hourly_tiers");
+  const usesHours = !isWorkspace && inCategory.packages.some((p) => p.active && p.mode === "hourly_tiers");
   const h = Math.min(Math.max(hours, bounds.min), bounds.max);
   const chosen = validPeople ? (applicablePackages(config, h, participants).find((p) => p.id === packageId && p.category === category) ?? null) : null;
 
-  const query = new URLSearchParams({ hours: String(h), people: validPeople ? String(participants) : "", category });
-  if (chosen) query.set("package", chosen.id);
+  const query = isWorkspace
+    ? new URLSearchParams({ space: "workspace", unit, count: String(units), people: validPeople ? String(participants) : "" })
+    : new URLSearchParams({ hours: String(h), people: validPeople ? String(participants) : "", category });
+  if (chosen && !isWorkspace) query.set("package", chosen.id);
   const href = `${localizeHref("/booking-request", locale)}?${query.toString()}`;
   const hourOptions = Array.from({ length: bounds.max - bounds.min + 1 }, (_, i) => bounds.min + i);
   const step = (d: number) => setPeople(String(Math.min(maxParticipants, Math.max(1, (validPeople ? participants : 0) + d))));
@@ -48,9 +62,11 @@ export function PriceCalculator({ config, maxParticipants = 500 }: { config: Pri
         <CategoryPicker
           config={config}
           value={category}
+          workspace={workspaces.length > 0}
           onChange={(c) => {
             setCategory(c);
             setPackageId(null);
+            if (c === "workspace" && validPeople && participants > Math.max(...workspaces.map((w) => w.capacity))) setPeople("1");
           }}
         />
 
@@ -78,6 +94,16 @@ export function PriceCalculator({ config, maxParticipants = 500 }: { config: Pri
           {people && !validPeople ? <p className="mt-1.5 text-sm text-destructive">{t("participantsInvalid", { max: maxParticipants })}</p> : null}
         </div>
 
+        {isWorkspace ? (
+          <div className="grid gap-4 sm:grid-cols-2">
+            <WorkspaceUnitPicker value={unit} onChange={(u) => { setUnit(u); setUnits(1); }} />
+            <div>
+              <label htmlFor="calc-units" className="mb-2 block text-sm font-medium">{t("workspace.howLong")}</label>
+              <WorkspaceCountSelect id="calc-units" unit={unit} value={units} onChange={setUnits} />
+            </div>
+          </div>
+        ) : null}
+
         {usesHours ? (
           <fieldset>
             <legend className="mb-2 text-sm font-medium">{t("duration")}</legend>
@@ -104,15 +130,19 @@ export function PriceCalculator({ config, maxParticipants = 500 }: { config: Pri
       </div>
 
       <div className="flex min-w-0 flex-col gap-5 rounded-xl border bg-surface p-5">
-        <EstimatePanel
-          config={config}
-          hours={h}
-          participants={validPeople ? participants : 0}
-          category={category}
-          packageId={packageId}
-          onPackageChange={setPackageId}
-          locale={locale}
-        />
+        {isWorkspace ? (
+          <WorkspaceEstimate config={config} workspaces={workspaces} unit={unit} units={units} participants={validPeople ? participants : 0} locale={locale} />
+        ) : (
+          <EstimatePanel
+            config={config}
+            hours={h}
+            participants={validPeople ? participants : 0}
+            category={category as PricingCategory}
+            packageId={packageId}
+            onPackageChange={setPackageId}
+            locale={locale}
+          />
+        )}
         <div className="mt-auto space-y-2">
           <Button asChild size="lg" className="w-full" data-testid="calc-send-request">
             <a href={href}>

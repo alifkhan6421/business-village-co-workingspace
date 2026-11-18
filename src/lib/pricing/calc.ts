@@ -52,13 +52,14 @@ export type QuoteLine =
   | { kind: "tier_per_person"; hours: number; participants: number; priceCents: number; amountCents: number }
   | { kind: "fixed"; units: number; unit: DurationUnit; unitHours: number | null; priceCents: number; amountCents: number }
   | { kind: "per_person"; participants: number; priceCents: number; amountCents: number; maxAmountCents: number | null }
-  | { kind: "extra_persons"; persons: number; priceCents: number; amountCents: number };
+  | { kind: "extra_persons"; persons: number; priceCents: number; amountCents: number }
+  | { kind: "workspace"; unit: WorkspaceUnit; units: number; participants: number; priceCents: number; amountCents: number; maxAmountCents: number | null };
 
 export type Quote = {
   packageId: string;
   packageSlug: string;
   packageName: { de: string; en: string };
-  mode: PricingMode;
+  mode: PricingMode | "workspace";
   /** "package": admin marked the price as final; "estimate": subject to confirmation. */
   kind: "estimate" | "package";
   hours: number;
@@ -222,6 +223,102 @@ export function hourBounds(config: PricingConfig, fallbackMax = 12) {
   const active = config.packages.filter((p) => p.active);
   if (!active.length) return { min: 1, max: fallbackMax };
   return { min: Math.min(...active.map((p) => p.minHours)), max: Math.max(...active.map((p) => p.maxHours)) };
+}
+
+// ---------------------------------------------------------------------------
+// Shared workspaces: price per person per day or per month
+// ---------------------------------------------------------------------------
+
+export type WorkspaceUnit = "day" | "month";
+export const WORKSPACE_UNITS: WorkspaceUnit[] = ["day", "month"];
+/** Longest period one request can cover. */
+export const WORKSPACE_MAX_UNITS: Record<WorkspaceUnit, number> = { day: 20, month: 12 };
+
+export type WorkspacePrice = { id: string; name: string; capacity: number; dayCents: number | null; monthCents: number | null };
+
+/** Workspaces that can take the group and have a price for the unit. */
+export function workspaceOptions(options: WorkspacePrice[], unit: WorkspaceUnit, participants: number) {
+  return options.filter((w) => w.capacity >= participants && (unit === "day" ? w.dayCents : w.monthCents) !== null);
+}
+
+/**
+ * Price for a workspace request: price per person per unit × people × units.
+ * With a preferred workspace its own price; otherwise the range over all
+ * workspaces the group fits into (the team assigns the workspace).
+ */
+export function quoteWorkspace(
+  options: WorkspacePrice[],
+  unit: WorkspaceUnit,
+  units: number,
+  participants: number,
+  settings: PricingSettings,
+  preferredId?: string | null,
+): Quote | null {
+  if (!Number.isInteger(units) || units < 1 || units > WORKSPACE_MAX_UNITS[unit]) return null;
+  if (!Number.isInteger(participants) || participants < 1) return null;
+  const preferred = preferredId ? options.find((w) => w.id === preferredId) : undefined;
+  const fitting = workspaceOptions(preferred ? [preferred] : options, unit, participants);
+  if (!fitting.length) return null;
+  const prices = fitting.map((w) => (unit === "day" ? w.dayCents! : w.monthCents!));
+  const min = Math.min(...prices);
+  const max = Math.max(...prices);
+  const amount = min * participants * units;
+  const maxAmount = max > min ? max * participants * units : null;
+  const split = splitVat(amount, settings);
+  const one = fitting.length === 1 ? fitting[0] : null;
+  return {
+    packageId: one?.id ?? "",
+    packageSlug: "workspace",
+    packageName: one ? { de: one.name, en: one.name } : { de: "Arbeitsplatz", en: "Workspace" },
+    mode: "workspace",
+    kind: "estimate",
+    hours: 0,
+    participants,
+    lines: [{ kind: "workspace", unit, units, participants, priceCents: min, amountCents: amount, maxAmountCents: maxAmount }],
+    ...split,
+    maxGrossCents: maxAmount !== null ? splitVat(maxAmount, settings).grossCents : null,
+    vatBasisPoints: settings.vatBasisPoints,
+    pricesIncludeVat: settings.pricesIncludeVat,
+    periodUnconfirmed: false,
+  };
+}
+
+function isoDow(date: string) {
+  const [y, m, d] = date.split("-").map(Number);
+  return ((new Date(Date.UTC(y, m - 1, d)).getUTCDay() + 6) % 7) + 1;
+}
+
+function shiftDate(date: string, days: number, months = 0) {
+  const [y, m, d] = date.split("-").map(Number);
+  if (months) {
+    // Same day of month, clamped to the target month's length (31 Jan + 1 month = 28 Feb).
+    const lastOfTarget = new Date(Date.UTC(y, m - 1 + months + 1, 0)).getUTCDate();
+    return new Date(Date.UTC(y, m - 1 + months, Math.min(d, lastOfTarget) + days)).toISOString().slice(0, 10);
+  }
+  return new Date(Date.UTC(y, m - 1, d + days)).toISOString().slice(0, 10);
+}
+
+/**
+ * Last day of a workspace booking ("YYYY-MM-DD"), as the database calculates it:
+ * days count open weekdays only; a month ends the day before the same date next month.
+ * Returns null when a day booking starts on a closed day.
+ */
+export function workspaceLastDay(unit: WorkspaceUnit, start: string, units: number, weekdays: number[]): string | null {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(start) || units < 1) return null;
+  if (unit === "month") return shiftDate(start, -1, units);
+  if (!weekdays.includes(isoDow(start))) return null;
+  let d = start;
+  let n = 0;
+  let last = start;
+  for (let guard = 0; guard < 400; guard++) {
+    if (weekdays.includes(isoDow(d))) {
+      n++;
+      last = d;
+      if (n >= units) return last;
+    }
+    d = shiftDate(d, 1);
+  }
+  return null;
 }
 
 export function formatCents(cents: number, locale: "de" | "en") {

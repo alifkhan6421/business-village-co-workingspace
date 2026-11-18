@@ -5,9 +5,9 @@ import type { Locale } from "@/i18n/routing";
 import { appUrl } from "@/lib/href";
 import { formatCents, formatVatRate, toCents } from "@/lib/pricing/calc";
 import { sendEmail } from "./send";
-import { addressLine, companyInfo, esc, fill, formatRange, layout, loadTemplate, type Row, type TemplateKey } from "./templates";
+import { addressLine, companyInfo, esc, fill, formatDayPeriod, formatRange, layout, loadTemplate, type Row, type TemplateKey } from "./templates";
 
-export type RequestEmailKind = "received" | "confirmed" | "rejected" | "alternative" | "cancelled" | "message";
+export type RequestEmailKind = "received" | "confirmed" | "rejected" | "alternative" | "cancelled" | "message" | "desk_changed";
 
 const KEYS: Record<RequestEmailKind, TemplateKey> = {
   received: "request_received",
@@ -16,12 +16,42 @@ const KEYS: Record<RequestEmailKind, TemplateKey> = {
   alternative: "request_alternative",
   cancelled: "request_cancelled",
   message: "request_message",
+  desk_changed: "request_desk_changed",
 };
 
 async function loadRequest(id: string) {
   const admin = createAdminClient();
-  const { data } = await admin.from("booking_requests").select("*, room:rooms!booking_requests_assigned_room_id_fkey(name, floor)").eq("id", id).single();
+  const { data } = await admin
+    .from("booking_requests")
+    .select("*, room:rooms!booking_requests_assigned_room_id_fkey(name, floor), workspace:workspaces!booking_requests_assigned_workspace_id_fkey(name, floor), preferred:workspaces!booking_requests_preferred_workspace_id_fkey(name)")
+    .eq("id", id)
+    .single();
   return data;
+}
+
+/** Desk labels by id, in desk order. */
+async function deskLabels(ids: string[]) {
+  if (!ids.length) return [] as string[];
+  const admin = createAdminClient();
+  const { data } = await admin.from("workspace_desks").select("id, label, position").in("id", ids).order("position");
+  return (data ?? []).map((d) => d.label);
+}
+
+type EmailT = Awaited<ReturnType<typeof getTranslations>>;
+
+/** "Team Space · Platz 1, 2" */
+function workspaceText(name: string | null | undefined, desks: string[], t: EmailT) {
+  if (!name) return "";
+  return desks.length ? `${name} · ${t("desks", { count: desks.length, desks: desks.join(", ") })}` : name;
+}
+
+/** Rows for a day or month booking: period, length, people. */
+function periodRows(start: string, end: string, unit: string, count: number | null, participants: number, locale: Locale, t: EmailT): Row[] {
+  return [
+    [t("period"), formatDayPeriod(start, end, locale)],
+    [t("bookedFor"), t(unit === "month" ? "months" : "days", { count: count ?? 1 })],
+    [t("attendees"), String(participants)],
+  ];
 }
 
 type RequestRow = NonNullable<Awaited<ReturnType<typeof loadRequest>>>;
@@ -60,13 +90,37 @@ export async function sendRequestEmail(requestId: string, kind: RequestEmailKind
   const site = await companyInfo();
   const company = site?.company_name ?? "Business Village";
   const room = (r.room as { name: string; floor: string } | null) ?? null;
-  const vars = { name: r.full_name, reference: r.reference, resource: room?.name ?? "" };
+  const ws = (r.workspace as { name: string; floor: string } | null) ?? null;
+  const isWs = r.space_type === "workspace" && r.booking_unit !== "hour";
+  const desks = isWs ? await deskLabels(r.assigned_desk_ids ?? []) : [];
+  const resourceName = isWs ? workspaceText(ws?.name, desks, t) : (room?.name ?? "");
+  const vars = { name: r.full_name, reference: r.reference, resource: resourceName };
+  const preferred = (r.preferred as { name: string } | null)?.name;
 
   let rows: Row[] = [[t("requestReference"), r.reference]];
-  if (kind === "received") {
+  if (isWs && kind === "received") {
     rows = [
       ...rows,
-      ...scheduleRows(r.requested_start, r.requested_end, r.requested_hours, r.requested_participants, locale, t),
+      [t("space"), t("workspaceDesk")],
+      ...periodRows(r.requested_start, r.requested_end, r.booking_unit, r.unit_count, r.requested_participants, locale, t),
+      ...(preferred ? ([[t("preferredWorkspace"), preferred]] as Row[]) : []),
+      [t("estimatedPrice"), priceText(r, "estimate", locale, t)],
+      [t("status"), ts("pending")],
+    ];
+  } else if (isWs && (kind === "confirmed" || kind === "desk_changed")) {
+    rows = [
+      ...rows,
+      [kind === "desk_changed" ? t("newDesk") : t("resource"), resourceName],
+      ...periodRows(r.start_at, r.end_at, r.booking_unit, r.unit_count, r.participants, locale, t),
+      [t("location"), [company, ws?.floor, addressLine(site)].filter(Boolean).join(", ")],
+      ...(kind === "confirmed" ? ([[t("confirmedPrice"), priceText(r, "current", locale, t)]] as Row[]) : []),
+    ];
+  } else if (isWs && (kind === "rejected" || kind === "cancelled")) {
+    rows = [...rows, [t("period"), formatDayPeriod(r.start_at, r.end_at, locale)]];
+  } else if (kind === "received") {
+    rows = [
+      ...rows,
+      ...scheduleRows(r.requested_start, r.requested_end, r.requested_hours ?? hoursBetween(r.requested_start, r.requested_end), r.requested_participants, locale, t),
       [t("estimatedPrice"), priceText(r, "estimate", locale, t)],
       [t("status"), ts("pending")],
     ];
@@ -118,7 +172,7 @@ export async function sendRequestEmail(requestId: string, kind: RequestEmailKind
     text,
     locale,
     bookingRequestId: r.id,
-    bookingId: kind === "confirmed" ? r.booking_id : null,
+    bookingId: kind === "confirmed" || kind === "desk_changed" ? r.booking_id : null,
     replyTo: site?.booking_email || null,
   });
 }
@@ -138,6 +192,15 @@ export async function sendRequestAdminNotification(requestId: string) {
   const t = await getTranslations({ locale, namespace: "emails" });
   const company = site?.company_name ?? "Business Village";
   const vars = { name: r.full_name, reference: r.reference, resource: "" };
+  const isWs = r.space_type === "workspace" && r.booking_unit !== "hour";
+  const preferred = (r.preferred as { name: string } | null)?.name;
+  const schedule: Row[] = isWs
+    ? [
+        [t("space"), t("workspaceDesk")],
+        ...periodRows(r.requested_start, r.requested_end, r.booking_unit, r.unit_count, r.requested_participants, locale, t),
+        ...(preferred ? ([[t("preferredWorkspace"), preferred]] as Row[]) : []),
+      ]
+    : scheduleRows(r.requested_start, r.requested_end, r.requested_hours ?? hoursBetween(r.requested_start, r.requested_end), r.requested_participants, locale, t);
   const { html, text } = layout({
     company,
     heading: fill(tpl.heading, vars),
@@ -148,7 +211,7 @@ export async function sendRequestAdminNotification(requestId: string) {
       [t("email"), r.email],
       [t("phone"), r.phone ?? "–"],
       [t("company"), r.company ?? "–"],
-      ...scheduleRows(r.requested_start, r.requested_end, r.requested_hours, r.requested_participants, locale, t),
+      ...schedule,
       [t("estimatedPrice"), priceText(r, "estimate", locale, t)],
       [t("additionalRequests"), r.message ?? "–"],
       [t("customerLanguage"), r.locale.toUpperCase()],

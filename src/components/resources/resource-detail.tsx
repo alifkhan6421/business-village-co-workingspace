@@ -41,13 +41,20 @@ export async function ResourceDetail({
   const images = resource.images.length ? resource.images : [{ id: "stock", ...stockResource(type, resource.slug, 1600) }];
   const bookable = resource.status === "available";
   const meta = [resource.floor, resource.zone].filter(Boolean).join(" · ");
-  // Members keep booking directly in the calendar; everyone else sends a request.
-  const memberBooking = bookable && !!current;
+  // Members keep booking rooms directly in the calendar; workspaces (desks) always go through a request.
+  const memberBooking = bookable && !!current && type === "room";
 
-  const prices = [
-    resource.priceHourly !== null ? { label: t("hourly"), value: formatPrice(resource.priceHourly, locale), unit: t("perHour") } : null,
-    resource.priceDaily !== null ? { label: t("daily"), value: formatPrice(resource.priceDaily, locale), unit: t("perDay") } : null,
-  ].filter(Boolean) as { label: string; value: string; unit: string }[];
+  const prices = (
+    type === "workspace"
+      ? [
+          resource.priceDaily !== null ? { label: t("daily"), value: formatPrice(resource.priceDaily, locale), unit: t("perPersonDay") } : null,
+          resource.priceMonthly !== null ? { label: t("monthly"), value: formatPrice(resource.priceMonthly, locale), unit: t("perPersonMonth") } : null,
+        ]
+      : [
+          resource.priceHourly !== null ? { label: t("hourly"), value: formatPrice(resource.priceHourly, locale), unit: t("perHour") } : null,
+          resource.priceDaily !== null ? { label: t("daily"), value: formatPrice(resource.priceDaily, locale), unit: t("perDay") } : null,
+        ]
+  ).filter(Boolean) as { label: string; value: string; unit: string }[];
 
   return (
     <div className="mx-auto max-w-7xl px-4 pb-12 pt-6 sm:px-6 sm:pt-8">
@@ -66,7 +73,7 @@ export async function ResourceDetail({
           </div>
           <h1 className="text-3xl font-extrabold tracking-tight sm:text-4xl" data-testid="resource-name">{resource.name}</h1>
           <p className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
-            <span className="inline-flex items-center gap-1"><Users className="h-4 w-4" /> {t("upToPersons", { count: resource.capacity })}</span>
+            <span className="inline-flex items-center gap-1"><Users className="h-4 w-4" /> {type === "workspace" ? t("seatsCount", { count: resource.capacity }) : t("upToPersons", { count: resource.capacity })}</span>
             {meta ? <><span aria-hidden="true">·</span><span>{meta}</span></> : null}
             {settings.city ? <><span aria-hidden="true">·</span><span className="inline-flex items-center gap-1"><MapPin className="h-4 w-4" />{settings.city}</span></> : null}
           </p>
@@ -103,6 +110,12 @@ export async function ResourceDetail({
                 ))}
               </ul>
             </section>
+          ) : null}
+
+          {type === "workspace" && bookable ? (
+            <p className="mt-6 rounded-xl bg-surface p-4 text-sm leading-relaxed text-muted-foreground" data-testid="workspace-how">
+              {t("workspaceHow")}
+            </p>
           ) : null}
 
           {!bookable ? (

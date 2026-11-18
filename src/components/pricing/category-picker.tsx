@@ -1,35 +1,41 @@
 "use client";
 import { useTranslations } from "next-intl";
-import { Building2, DoorStairwell, Presentation } from "lucide-react";
+import { Building2, DoorStairwell, Laptop, Presentation } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PRICING_CATEGORIES, type PricingCategory, type PricingConfig } from "@/lib/pricing/calc";
 
-const ICONS = { meeting: Presentation, stairs: DoorStairwell, venue: Building2 } as const;
+const ICONS = { meeting: Presentation, stairs: DoorStairwell, venue: Building2, workspace: Laptop } as const;
+
+/** What a visitor can book: a priced room category, or a desk in a shared workspace. */
+export type BookCategory = PricingCategory | "workspace";
 
 /** Categories that have at least one active price, in display order. */
 export function activeCategories(config: PricingConfig) {
   return PRICING_CATEGORIES.filter((c) => config.packages.some((p) => p.active && p.category === c));
 }
 
-/** "What would you like to book?": meeting room, event stairs or the entire venue. */
+/** "What would you like to book?": meeting room, event stairs, the entire venue or a workspace. */
 export function CategoryPicker({
   config,
   value,
   onChange,
+  workspace = false,
   className,
 }: {
   config: PricingConfig;
-  value: PricingCategory;
-  onChange: (c: PricingCategory) => void;
+  value: BookCategory;
+  onChange: (c: BookCategory) => void;
+  /** Offer desks in shared workspaces as a fourth choice. */
+  workspace?: boolean;
   className?: string;
 }) {
   const t = useTranslations("pricing");
-  const categories = activeCategories(config);
+  const categories: BookCategory[] = [...activeCategories(config), ...(workspace ? (["workspace"] as const) : [])];
   if (categories.length < 2) return null;
   return (
     <fieldset className={className} data-testid="category-picker">
       <legend className="mb-2 text-sm font-medium">{t("whatToBook")}</legend>
-      <div className="grid gap-2 sm:grid-cols-3">
+      <div className={cn("grid gap-2", categories.length === 4 ? "sm:grid-cols-2 xl:grid-cols-4" : "sm:grid-cols-3")}>
         {categories.map((c) => {
           const Icon = ICONS[c];
           return (
